@@ -5,28 +5,13 @@ import Button from "../ui/Button";
 import Input from "../ui/Input";
 import UploadStatus from "./UploadStatus";
 
-interface Risk {
-  label: string;
-  severity: string;
-  why: string;
-  quote: string;
-}
-
-interface AnalysisResult {
-  short_summary: string;
-  key_points: string[];
-  extracted: Record<string, string>;
-  risks: Risk[];
-  disclaimers: string[];
-}
-
 export default function FileUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [analyzeResult, setAnalyzeResult] = useState<AnalysisResult | null>(null);
+  const [analyzeResult, setAnalyzeResult] = useState<any | null>(null);
 
   const handleUpload = async () => {
     if (!file) {
@@ -75,30 +60,6 @@ export default function FileUpload() {
       const data = await res.json();
       if (res.ok) {
         setAnalyzeResult(data.summary);
-        
-        // Save analysis to Firestore
-        try {
-          const saveRes = await fetch("/api/upload", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fileName: file?.name || "Unknown",
-              fileSize: file?.size || 0,
-              analysisResult: data.summary,
-              shortSummary: data.summary.short_summary,
-              keyPoints: data.summary.key_points || [],
-              extractedData: data.summary.extracted || {},
-              risks: data.summary.risks || [],
-              disclaimers: data.summary.disclaimers || []
-            }),
-          });
-          
-          if (!saveRes.ok) {
-            console.error("Failed to save analysis to database");
-          }
-        } catch (saveError) {
-          console.error("Error saving to database:", saveError);
-        }
       } else {
         setError(data.error || "Analyze failed");
       }
@@ -145,7 +106,7 @@ export default function FileUpload() {
               {Object.entries(analyzeResult.extracted || {}).map(([key, value]) => (
                 <div key={key} className="bg-white border rounded p-2">
                   <div className="font-semibold capitalize">{key.replace(/_/g, ' ')}</div>
-                  <div className="text-gray-700 break-words">{value as string}</div>
+                  <div className="text-gray-700 break-words">{value}</div>
                 </div>
               ))}
             </div>
