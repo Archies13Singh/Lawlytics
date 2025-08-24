@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { legalModel } from '@/utils/vertexClient';
 import { getDocumentFromGCS, downloadGcsObject } from '@/utils/gcsRead';
 import { docaiClient, DOC_PROCESSOR_NAME } from '@/utils/docaiClient';
+import { adminAuth, adminDb } from '@/utils/firebaseAdmin';
+import { doc, updateDoc } from 'firebase-admin/firestore';
 
 // --- Utilities (from simplify) ---
 function splitIntoChunks(text: string, maxChars = 15000): string[] {
@@ -146,16 +148,70 @@ async function askGeminiForJson(prompt: string) {
 
 export async function POST(req: NextRequest) {
   try {
-    const { gcsUri } = await req.json();
+    console.log('Analyze API called');
+    
+    // Verify user authentication
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('Missing or invalid authorization header');
+      return NextResponse.json({ error: 'Unauthorized - No token provided' }, { status: 401 });
+    }
+
+    const token = authHeader.substring(7);
+    let decodedToken;
+    
+    try {
+      console.log('Verifying Firebase ID token...');
+      decodedToken = await adminAuth.verifyIdToken(token);
+      console.log('Token verified for user:', decodedToken.uid);
+    } catch (error) {
+      console.error('Firebase token verification failed:', error);
+      return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
+    }
+
+    const { gcsUri, documentId } = await req.json();
+    console.log('Request data:', { gcsUri, documentId });
+    
     if (!gcsUri) {
+      console.error('Missing gcsUri in request');
       return NextResponse.json({ error: 'Missing gcsUri' }, { status: 400 });
     }
+
+    // Update document status to analyzing
+    if (documentId) {
+      try {
+        console.log('Updating document status to analyzing...');
+        const documentRef = doc(adminDb, 'documents', documentId);
+        await updateDoc(documentRef, {
+          status: 'analyzing',
+          analyzedAt: new Date(),
+        });
+        console.log('Document status updated to analyzing');
+      } catch (error) {
+        console.error('Failed to update document status to analyzing:', error);
+      }
+    }
+
+    console.log('Starting document analysis...');
+    console.log('GCS URI:', gcsUri);
+
     // 1. Download PDF from GCS
     const match = gcsUri.match(/^gs:\/\/([^\/]+)\/(.+)$/);
-    if (!match) throw new Error('Invalid GCS URI: ' + gcsUri);
+    if (!match) {
+      const error = 'Invalid GCS URI: ' + gcsUri;
+      console.error(error);
+      throw new Error(error);
+    }
+    
     const objectName = match[2];
+    console.log('Object name:', objectName);
+    
+    console.log('Downloading document from GCS...');
     const buffer = await downloadGcsObject(objectName);
+    console.log('Document downloaded, size:', buffer.length);
+    
     // 2. Process PDF with Document AI
+    console.log('Processing with Document AI...');
     const [result] = await docaiClient.processDocument({
       name: DOC_PROCESSOR_NAME,
       rawDocument: {
@@ -163,6 +219,7 @@ export async function POST(req: NextRequest) {
         mimeType: 'application/pdf',
       },
     });
+    
     const document = result.document;
     let text = '';
     if (document?.text) {
@@ -171,31 +228,84 @@ export async function POST(req: NextRequest) {
       text = document.pages.map((p: any) => p.text || '').join('\n');
     }
     if (!text) text = '';
+    
+    console.log('Document text extracted, length:', text.length);
+    
     // 3. Chunk and analyze
+    console.log('Splitting text into chunks...');
     const chunks = splitIntoChunks(text);
+    console.log('Text split into', chunks.length, 'chunks');
+    
     const perChunkResults = [];
-    for (const chunk of chunks) {
+    for (let i = 0; i < chunks.length; i++) {
+      const chunk = chunks[i];
+      console.log(`Processing chunk ${i + 1}/${chunks.length}...`);
+      
       const prompt = buildChunkPrompt(chunk);
       try {
         const result = await askGeminiForJson(prompt);
         perChunkResults.push(result);
-      } catch {
+        console.log(`Chunk ${i + 1} processed successfully`);
+      } catch (error) {
+        console.error(`Error processing chunk ${i + 1}:`, error);
         const retryPrompt = prompt + '\n\nREMINDER: Output MUST be valid JSON. No backticks. No extra text.';
         const result = await askGeminiForJson(retryPrompt);
         perChunkResults.push(result);
+        console.log(`Chunk ${i + 1} processed on retry`);
       }
     }
+    
+    console.log('Merging chunk results...');
     const merged = mergeResults(perChunkResults);
     if (!merged.disclaimers?.length) {
       merged.disclaimers = ['This is an automated, informational summary and not legal advice.'];
     }
-    return NextResponse.json({
+
+    console.log('Analysis completed successfully');
+
+    // Update document status to completed
+    if (documentId) {
+      try {
+        console.log('Updating document status to completed...');
+        const documentRef = doc(adminDb, 'documents', documentId);
+        await updateDoc(documentRef, {
+          status: 'completed',
+          analyzedAt: new Date(),
+          analysisResult: merged,
+        });
+        console.log('Document status updated to completed');
+      } catch (error) {
+        console.error('Failed to update document status to completed:', error);
+      }
+    }
+
+    const response = {
       gcsUri,
       textLength: text.length,
       summary: merged,
-    });
+    };
+    
+    console.log('Returning analysis results');
+    return NextResponse.json(response);
   } catch (err: any) {
     console.error('Analyze error:', err);
+    
+    // Update document status to failed if we have a documentId
+    try {
+      const { documentId } = await req.json().catch(() => ({}));
+      if (documentId) {
+        console.log('Updating document status to failed...');
+        const documentRef = doc(adminDb, 'documents', documentId);
+        await updateDoc(documentRef, {
+          status: 'failed',
+          analyzedAt: new Date(),
+        });
+        console.log('Document status updated to failed');
+      }
+    } catch (error) {
+      console.error('Failed to update document status to failed:', error);
+    }
+    
     return NextResponse.json({ error: err.message || 'Analyze failed' }, { status: 500 });
   }
 }
