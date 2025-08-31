@@ -3,9 +3,7 @@
 import { useState } from 'react';
 import LoginForm from './LoginForm';
 import SignUpForm from './SignUpForm';
-import FirebaseTest from './FirebaseTest';
-import SimpleTest from './SimpleTest';
-import AnalyzeTest from './AnalyzeTest';
+
 
 export default function Auth() {
   const [isLogin, setIsLogin] = useState(true);
@@ -28,24 +26,6 @@ export default function Auth() {
         ) : (
           <SignUpForm onSwitchToLogin={() => setIsLogin(true)} />
         )}
-        
-        {/* Debug section */}
-        <div className="pt-4 border-t">
-          <button
-            onClick={() => setShowTest(!showTest)}
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            {showTest ? 'Hide' : 'Show'} Firebase Debug Info
-          </button>
-          
-          {showTest && (
-            <div className="mt-4 space-y-4">
-              <SimpleTest />
-              <FirebaseTest />
-              <AnalyzeTest />
-            </div>
-          )}
-        </div>
       </div>
     </div>
   );

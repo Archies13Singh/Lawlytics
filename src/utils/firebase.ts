@@ -13,17 +13,6 @@ const firebaseConfig = {
   measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID,
 };
 
-// Debug: Log the configuration (remove in production)
-console.log('Firebase Config:', {
-  apiKey: firebaseConfig.apiKey?.substring(0, 10) + '...',
-  authDomain: firebaseConfig.authDomain,
-  databaseURL: firebaseConfig.databaseURL,
-  projectId: firebaseConfig.projectId,
-  storageBucket: firebaseConfig.storageBucket,
-  messagingSenderId: firebaseConfig.messagingSenderId,
-  appId: firebaseConfig.appId,
-  measurementId: firebaseConfig.measurementId,
-});
 
 // Validate configuration
 if (!firebaseConfig.apiKey || !firebaseConfig.authDomain || !firebaseConfig.projectId) {
