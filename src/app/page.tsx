@@ -23,13 +23,13 @@ export default function Home() {
   }
 
   return (
-    <main className="p-6 max-w-6xl mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <h1 className="text-2xl font-bold mb-4">📄 Legal Doc AI - Upload</h1>
+    <main className="p-4 md:p-6 max-w-7xl mx-auto" style={{ backgroundColor: '#dad7cd', minHeight: '100vh', color: '#344e41' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
+        <div className="lg:col-span-2 p-4 md:p-6 rounded-lg shadow-lg" style={{ backgroundColor: '#A8BCA1' }}>
+          <h1 className="text-2xl md:text-3xl font-extrabold mb-4 md:mb-6" style={{ color: '#3a5a40' }}>📄 Legal Doc AI - Upload</h1>
           <FileUpload />
         </div>
-        <div className="space-y-6">
+        <div className="space-y-4 md:space-y-6">
           <UserProfile />
           <DocumentHistory />
         </div>

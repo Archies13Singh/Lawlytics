@@ -42,38 +42,35 @@ export default function UserProfile() {
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-semibold mb-4">User Profile</h2>
-      
-      <div className="space-y-4">
+    <div className="rounded-lg shadow-lg p-4" style={{ backgroundColor: '#A8BCA1' }}>
+      <h2 className="text-lg font-semibold mb-3" style={{ color: '#3a5a40' }}>👤 User Profile</h2>
+
+      <div className="space-y-3">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium mb-1" style={{ color: '#344e41' }}>
             Email
           </label>
-          <Input
-            type="email"
-            value={user.email || ''}
-            disabled
-            className="bg-gray-50"
-          />
+          <div className="text-sm" style={{ color: '#344e41' }}>{user.email}</div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-xs font-medium mb-1" style={{ color: '#344e41' }}>
             Display Name
           </label>
           {isEditing ? (
-            <div className="flex gap-2">
+            <div className="flex gap-1">
               <Input
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Enter display name"
+                className="text-sm"
               />
               <Button
                 onClick={handleSave}
                 loading={loading}
                 size="sm"
+                className="text-xs px-2"
               >
                 Save
               </Button>
@@ -81,22 +78,19 @@ export default function UserProfile() {
                 onClick={handleCancel}
                 variant="outline"
                 size="sm"
+                className="text-xs px-2"
               >
                 Cancel
               </Button>
             </div>
           ) : (
             <div className="flex items-center gap-2">
-              <Input
-                type="text"
-                value={displayName || 'Not set'}
-                disabled
-                className="bg-gray-50"
-              />
+              <div className="text-sm flex-1" style={{ color: '#344e41' }}>{displayName || 'Not set'}</div>
               <Button
                 onClick={() => setIsEditing(true)}
                 variant="outline"
                 size="sm"
+                className="text-xs px-2"
               >
                 Edit
               </Button>
@@ -104,30 +98,23 @@ export default function UserProfile() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600">
-          <div>
-            <span className="font-medium">Member since:</span>
-            <br />
-            {userProfile.createdAt.toLocaleDateString()}
-          </div>
-          <div>
-            <span className="font-medium">Last login:</span>
-            <br />
-            {userProfile.lastLoginAt.toLocaleDateString()}
-          </div>
+        <div className="text-xs" style={{ color: '#344e41' }}>
+          <div>Member since: {userProfile.createdAt.toLocaleDateString()}</div>
+          <div>Last login: {userProfile.lastLoginAt.toLocaleDateString()}</div>
         </div>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          <div className="bg-red-50 border border-red-200 text-red-700 px-2 py-1 rounded text-xs">
             {error}
           </div>
         )}
 
-        <div className="pt-4 border-t">
+        <div className="pt-2 border-t" style={{ borderColor: '#588157' }}>
           <Button
             onClick={logout}
             variant="destructive"
-            className="w-full"
+            className="w-full text-sm"
+            size="sm"
           >
             Sign Out
           </Button>

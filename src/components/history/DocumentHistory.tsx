@@ -1,11 +1,19 @@
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { collection, query, where, orderBy, getDocs, deleteDoc, doc } from 'firebase/firestore';
-import { db } from '@/utils/firebase';
-import Button from '../ui/Button';
-import Loader from '../ui/Loader';
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
+import { db } from "@/utils/firebase";
+import Button from "../ui/Button";
+import Loader from "../ui/Loader";
+import DocumentDetailModal from "./DocumentDetailModal";
 
 interface DocumentRecord {
   id: string;
@@ -15,14 +23,18 @@ interface DocumentRecord {
   uploadedAt: Date;
   analyzedAt?: Date;
   analysisResult?: any;
-  status: 'uploaded' | 'analyzing' | 'completed' | 'failed';
+  status: "uploaded" | "analyzing" | "completed" | "failed";
 }
 
 export default function DocumentHistory() {
   const { user } = useAuth();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
+  const [selectedDocument, setSelectedDocument] =
+    useState<DocumentRecord | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(3);
 
   useEffect(() => {
     if (user) {
@@ -32,18 +44,18 @@ export default function DocumentHistory() {
 
   const fetchDocuments = async () => {
     if (!user) return;
-    
+
     try {
       setLoading(true);
+      // Use a simpler query that doesn't require composite index
       const q = query(
-        collection(db, 'documents'),
-        where('userId', '==', user.uid),
-        orderBy('uploadedAt', 'desc')
+        collection(db, "documents"),
+        where("userId", "==", user.uid)
       );
-      
+
       const querySnapshot = await getDocs(q);
       const docs: DocumentRecord[] = [];
-      
+
       querySnapshot.forEach((doc) => {
         const data = doc.data();
         docs.push({
@@ -57,23 +69,57 @@ export default function DocumentHistory() {
           status: data.status,
         });
       });
-      
+
+      // Sort documents by uploadedAt in descending order (most recent first)
+      docs.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
+
       setDocuments(docs);
+      setVisibleCount(3); // Reset to show only 3 initially
     } catch (err: any) {
-      setError('Failed to fetch documents: ' + err.message);
+      setError("Failed to fetch documents: " + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (docId: string) => {
-    if (!confirm('Are you sure you want to delete this document?')) return;
-    
+  const handleDocumentClick = (document: DocumentRecord) => {
+    setSelectedDocument(document);
+    setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setSelectedDocument(null);
+    setIsModalOpen(false);
+  };
+
+  const handleDownload = async (document: DocumentRecord) => {
     try {
-      await deleteDoc(doc(db, 'documents', docId));
-      setDocuments(docs => docs.filter(doc => doc.id !== docId));
+      const response = await fetch(document.fileUrl);
+      if (!response.ok) {
+        throw new Error("Failed to download file");
+      }
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = document.fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      setError("Download failed: " + (error as Error).message);
+    }
+  };
+
+  const handleDelete = async (docId: string) => {
+    if (!confirm("Are you sure you want to delete this document?")) return;
+
+    try {
+      await deleteDoc(doc(db, "documents", docId));
+      setDocuments((docs) => docs.filter((doc) => doc.id !== docId));
     } catch (err: any) {
-      setError('Failed to delete document: ' + err.message);
+      setError("Failed to delete document: " + err.message);
     }
   };
 
@@ -81,29 +127,33 @@ export default function DocumentHistory() {
     try {
       // Get the current user's ID token
       const token = await user?.getIdToken();
-      
-      const res = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
+
+      const res = await fetch("/api/analyze", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           gcsUri: document.gsUri,
-          documentId: document.id 
+          documentId: document.id,
         }),
       });
-      
+
       if (res.ok) {
         // Refresh documents to show updated status
         await fetchDocuments();
       } else {
         const data = await res.json();
-        setError('Reanalysis failed: ' + (data.error || 'Unknown error'));
+        setError("Reanalysis failed: " + (data.error || "Unknown error"));
       }
     } catch (err: any) {
-      setError('Reanalysis failed: ' + err.message);
+      setError("Reanalysis failed: " + err.message);
     }
+  };
+
+  const handleLoadMore = () => {
+    setVisibleCount((prev) => Math.min(prev + 3, documents.length));
   };
 
   if (loading) {
@@ -119,7 +169,7 @@ export default function DocumentHistory() {
       <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-4">
         {error}
         <button
-          onClick={() => setError('')}
+          onClick={() => setError("")}
           className="ml-2 text-red-500 hover:text-red-700"
         >
           ×
@@ -138,82 +188,95 @@ export default function DocumentHistory() {
 
   return (
     <div className="space-y-4">
-      <h2 className="text-xl font-semibold mb-4">Document History</h2>
-      
-      <div className="grid gap-4">
-        {documents.map((document) => (
-          <div
-            key={document.id}
-            className="border rounded-lg p-4 bg-white shadow-sm hover:shadow-md transition-shadow"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="font-semibold text-lg mb-2">{document.fileName}</h3>
-                
-                <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
-                  <div>
-                    <span className="font-medium">Uploaded:</span> {document.uploadedAt.toLocaleDateString()}
-                  </div>
-                  <div>
-                    <span className="font-medium">Status:</span>
-                    <span className={`ml-1 px-2 py-1 rounded-full text-xs font-medium ${
-                      document.status === 'completed' ? 'bg-green-100 text-green-800' :
-                      document.status === 'analyzing' ? 'bg-yellow-100 text-yellow-800' :
-                      document.status === 'failed' ? 'bg-red-100 text-red-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {document.status}
-                    </span>
-                  </div>
-                </div>
+      <h2 className="text-xl font-semibold mb-4" style={{ color: "#3a5a40" }}>
+        📋 Document History
+      </h2>
 
-                {document.analyzedAt && (
-                  <div className="text-sm text-gray-600 mb-3">
-                    <span className="font-medium">Analyzed:</span> {document.analyzedAt.toLocaleDateString()}
-                  </div>
-                )}
-
-                {document.analysisResult && (
-                  <div className="mb-3">
-                    <h4 className="font-medium text-sm mb-1">Summary:</h4>
-                    <p className="text-sm text-gray-700 line-clamp-2">
-                      {document.analysisResult.short_summary}
-                    </p>
-                  </div>
-                )}
+      <div
+        className="rounded-lg overflow-hidden max-h-96"
+        style={{ backgroundColor: "#A8BCA1" }}
+      >
+        <div className="grid gap-3 p-4">
+          {documents.slice(0, visibleCount).map((document) => (
+            <div
+              key={document.id}
+              className="p-2 rounded-lg shadow-sm"
+              style={{ backgroundColor: "#dad7cd" }}
+            >
+              <div className="mb-2 min-w-0">
+                <h3
+                  className="font-semibold text-sm"
+                  style={{ color: "#344e41" }}
+                  title={document.fileName}
+                >
+                  {document.fileName.length > 40
+                    ? `${document.fileName.slice(0, 40)}...`
+                    : document.fileName}
+                </h3>
               </div>
 
-              <div className="flex flex-col gap-2 ml-4">
+              <div className="flex flex-wrap gap-2">
                 <Button
-                  onClick={() => window.open(document.fileUrl, '_blank')}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDocumentClick(document);
+                  }}
                   size="sm"
                   variant="outline"
+                  className="text-xs px-3 py-1 flex-shrink-0"
                 >
-                  View
+                  View Details
                 </Button>
-                
-                {document.status === 'completed' && (
-                  <Button
-                    onClick={() => handleReanalyze(document)}
-                    size="sm"
-                    variant="outline"
-                  >
-                    Reanalyze
-                  </Button>
-                )}
-                
+
                 <Button
-                  onClick={() => handleDelete(document.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.open(document.fileUrl, "_blank");
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs px-3 py-1 flex-shrink-0"
+                >
+                  View PDF
+                </Button>
+
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(document.id);
+                  }}
                   size="sm"
                   variant="destructive"
+                  className="text-xs px-3 py-1 flex-shrink-0"
                 >
                   Delete
                 </Button>
               </div>
             </div>
+          ))}
+        </div>
+
+        {visibleCount < documents.length && (
+          <div className="p-4 pt-0">
+            <Button
+              onClick={handleLoadMore}
+              size="sm"
+              variant="outline"
+              className="w-full text-sm"
+              style={{ backgroundColor: "#dad7cd", color: "#344e41" }}
+            >
+              Load More ({documents.length - visibleCount} remaining)
+            </Button>
           </div>
-        ))}
+        )}
       </div>
+
+      <DocumentDetailModal
+        document={selectedDocument}
+        isOpen={isModalOpen}
+        onClose={handleModalClose}
+        onDownload={handleDownload}
+      />
     </div>
   );
 }

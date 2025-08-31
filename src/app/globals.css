@@ -3,11 +3,22 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  /* Custom color theme */
+  --color-344e41: #344e41;
+  --color-3a5a40: #3a5a40;
+  --color-588157: #588157;
+  --color-a3b18a: #a3b18a;
+  --color-dad7cd: #dad7cd;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-344e41: var(--color-344e41);
+  --color-3a5a40: var(--color-3a5a40);
+  --color-588157: var(--color-588157);
+  --color-a3b18a: var(--color-a3b18a);
+  --color-dad7cd: var(--color-dad7cd);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
