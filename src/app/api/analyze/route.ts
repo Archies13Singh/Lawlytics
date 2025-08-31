@@ -146,6 +146,42 @@ async function askGeminiForJson(prompt: string) {
   }
 }
 
+// New function to check if document is legal
+async function isLegalDocument(text: string): Promise<boolean> {
+  const prompt = `
+You are a classifier. Determine if the following document is a legal document or not.
+Answer with STRICT JSON ONLY:
+{
+  "isLegal": true|false,
+  "reason": "string"
+}
+Document:
+"""${text.slice(0, 1000)}"""
+Rules:
+- Answer only with JSON, no extra text.
+- If the document is legal, "isLegal" should be true, else false.
+- Provide a brief reason.
+`.trim();
+
+  try {
+    const resp = await legalModel.generateContent({
+      contents: [{ role: 'user', parts: [{ text: prompt }] }],
+      generationConfig: {
+        temperature: 0,
+        maxOutputTokens: 100,
+      },
+      safetySettings: [],
+    });
+    const textResp = resp.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    const parsed = safeJsonParse(textResp);
+    return parsed.isLegal === true;
+  } catch (error) {
+    console.error('Error in isLegalDocument:', error);
+    // Fail safe: assume not legal if error
+    return false;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     console.log('Analyze API called');
@@ -230,6 +266,26 @@ export async function POST(req: NextRequest) {
     if (!text) text = '';
     
     console.log('Document text extracted, length:', text.length);
+
+    // New: Check if document is legal
+    const legalCheck = await isLegalDocument(text);
+    if (!legalCheck) {
+      console.error('Document is not legal');
+      if (documentId) {
+        try {
+          const documentRef = doc(adminDb, 'documents', documentId);
+          await updateDoc(documentRef, {
+            status: 'failed',
+            analyzedAt: new Date(),
+            error: 'Document is not a legal document',
+          });
+          console.log('Document status updated to failed due to non-legal document');
+        } catch (error) {
+          console.error('Failed to update document status to failed:', error);
+        }
+      }
+      return NextResponse.json({ error: 'This document does not appear to be a legal document. We only process legal documents.' }, { status: 400 });
+    }
     
     // 3. Chunk and analyze
     console.log('Splitting text into chunks...');
