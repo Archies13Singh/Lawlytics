@@ -52,7 +52,7 @@ function mergeResults(parts: any[]) {
     short_summary: '',
     key_points: [],
     extracted: {
-      parties: '', effective_date: '', term: '', notice_period: '',
+      Parties: '', effective_date: '', term: '', notice_period: '',
       payment_terms: '', security_deposit: '', maintenance_responsibility: '',
       late_fee: '', renewal: '', termination: '', jurisdiction: ''
     },
@@ -106,7 +106,7 @@ matching this schema (no markdown, no extra text):
   "short_summary": "string",
   "key_points": ["string", "..."],
   "extracted": {
-    "parties": "string",
+    "Parties": "string",
     "effective_date": "string",
     "term": "string",
     "notice_period": "string",
@@ -171,7 +171,7 @@ export async function POST(req: NextRequest) {
 
     // TEST: If text is '__test__', send a minimal prompt to Vertex AI
     if (text === "__test__") {
-      const prompt = "Summarize: Hello world. The parties are Alice and Bob.";
+      const prompt = "Summarize: Hello world. The Parties are Alice and Bob.";
       const result = await askGeminiForJson(prompt);
       return NextResponse.json({ testPrompt: prompt, result });
     }

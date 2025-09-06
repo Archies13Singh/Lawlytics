@@ -2,6 +2,9 @@
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import { useTranslation } from "@/hooks/useTranslation";
+import { translations } from "@/utils/translations";
 import { doc, setDoc } from "firebase/firestore";
 import { db } from "@/utils/firebase";
 import Button from "../ui/Button";
@@ -10,6 +13,8 @@ import UploadStatus from "./UploadStatus";
 
 export default function FileUpload() {
   const { user } = useAuth();
+  const { language } = useLanguage();
+  const { t } = useTranslation();
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [fileUrl, setFileUrl] = useState<string | null>(null);
@@ -18,15 +23,15 @@ export default function FileUpload() {
   const [analyzeResult, setAnalyzeResult] = useState<any | null>(null);
 
   const handleUpload = async () => {
-    if (!user) {
-      setError("Please sign in to upload documents.");
-      return;
-    }
+      if (!user) {
+        setError(t("signInToUpload"));
+        return;
+      }
 
-    if (!file) {
-      setError("Please select a file first.");
-      return;
-    }
+      if (!file) {
+        setError(t("selectFileFirst"));
+        return;
+      }
 
     setUploading(true);
     setError(null);
@@ -136,32 +141,32 @@ export default function FileUpload() {
   };
 
   const handleAnalyze = async () => {
-    if (!user) {
-      setError("Please sign in to analyze documents.");
-      return;
-    }
+      if (!user) {
+        setError(t("signInToAnalyze"));
+        return;
+      }
 
     // Get the GCS URI from localStorage
     const gcsUri = localStorage.getItem("gsUri");
-    if (!gcsUri) {
-      setError("No GCS URI found. Please upload again.");
-      return;
-    }
+      if (!gcsUri) {
+        setError(t("noGcsUri"));
+        return;
+      }
 
     // Validate GCS URI format
-    if (!gcsUri.startsWith("gs://")) {
-      setError("Invalid GCS URI format. Please upload again.");
-      return;
-    }
+      if (!gcsUri.startsWith("gs://")) {
+        setError(t("invalidGcsUri"));
+        return;
+      }
 
     // Extract document ID from gsUri for Firebase updates
     const gsUriParts = gcsUri.split("/");
     const docId = gsUriParts[gsUriParts.length - 2];
 
-    if (!docId) {
-      setError("Could not extract document ID from GCS URI.");
-      return;
-    }
+      if (!docId) {
+        setError(t("documentIdNotFound"));
+        return;
+      }
 
     setAnalyzeResult(null);
     setError(null);
@@ -183,6 +188,7 @@ export default function FileUpload() {
         body: JSON.stringify({
           gcsUri: gcsUri,
           documentId: docId,
+          language: language,
         }),
       });
 
@@ -242,7 +248,7 @@ export default function FileUpload() {
         }
       } else {
         console.error("Analysis failed:", data.error);
-        setError(data.error || "Analyze failed");
+        setError(data.error || t("analyzeError"));
 
         // Update document status to failed
         try {
@@ -262,36 +268,36 @@ export default function FileUpload() {
           );
         }
       }
-    } catch (err) {
-      console.error("Analyze error:", err);
-      setError("Analyze error");
+      } catch (err) {
+        console.error("Analyze error:", err);
+        setError(t("analyzeError"));
 
-      // Update document status to failed
-      try {
-        const documentRef = doc(db, "documents", docId);
-        await setDoc(
-          documentRef,
-          {
-            status: "failed",
-            analyzedAt: new Date(),
-          },
-          { merge: true }
-        );
-      } catch (firebaseError) {
-        console.error(
-          "Failed to update document status to failed:",
-          firebaseError
-        );
+        // Update document status to failed
+        try {
+          const documentRef = doc(db, "documents", docId);
+          await setDoc(
+            documentRef,
+            {
+              status: "failed",
+              analyzedAt: new Date(),
+            },
+            { merge: true }
+          );
+        } catch (firebaseError) {
+          console.error(
+            "Failed to update document status to failed:",
+            firebaseError
+          );
+        }
+      } finally {
+        setAnalyzing(false);
       }
-    } finally {
-      setAnalyzing(false);
-    }
   };
 
   if (!user) {
     return (
       <div className="text-center py-8 text-gray-500">
-        <p>Please sign in to upload and analyze documents.</p>
+        <p>{t('signInToUpload')}</p>
       </div>
     );
   }
@@ -303,6 +309,8 @@ export default function FileUpload() {
           type="file"
           onChange={(e) => setFile(e.target.files?.[0] || null)}
           accept=".pdf,.doc,.docx"
+          aria-label={t("selectFile")}
+          title={t("selectFile")}
         />
         <div>
           <Button
@@ -310,25 +318,25 @@ export default function FileUpload() {
             disabled={uploading}
             loading={uploading}
           >
-            Upload
+            {t('upload')}
           </Button>
           <Button
             onClick={handleAnalyze}
             disabled={uploading || !localStorage.getItem("gsUri")}
             loading={analyzing}
           >
-            Analyze
+            {t('analyze')}
           </Button>
         </div>
       </div>
       {analyzeResult && (
         <div className="bg-green-50 p-4 rounded border text-sm space-y-4">
           <div>
-            <div className="font-bold text-lg mb-1">Summary</div>
+            <div className="font-bold text-lg mb-1">{t("summary")}</div>
             <div>{analyzeResult.short_summary}</div>
           </div>
           <div>
-            <div className="font-bold mb-1">Key Points</div>
+            <div className="font-bold mb-1">{t("keyPoints")}</div>
             <ul className="list-disc list-inside space-y-1">
               {analyzeResult.key_points?.map((point: string, idx: number) => (
                 <li key={idx}>{point}</li>
@@ -336,13 +344,13 @@ export default function FileUpload() {
             </ul>
           </div>
           <div>
-            <div className="font-bold mb-1">Important Terms</div>
+            <div className="font-bold mb-1">{t("importantTerms")}</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {Object.entries(analyzeResult.extracted || {}).map(
                 ([key, value]) => (
                   <div key={key} className="bg-white border rounded p-2">
                     <div className="font-semibold capitalize">
-                      {key.replace(/_/g, " ")}
+                      {t(key as keyof typeof translations.en)}
                     </div>
                     <div className="text-gray-700 break-words">{value}</div>
                   </div>
@@ -351,7 +359,7 @@ export default function FileUpload() {
             </div>
           </div>
           <div>
-            <div className="font-bold mb-1">Potential Risks</div>
+            <div className="font-bold mb-1">{t("potentialRisks")}</div>
             <ul className="space-y-2">
               {analyzeResult.risks?.map(
                 (

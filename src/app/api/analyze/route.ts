@@ -47,7 +47,116 @@ function safeJsonParse(s: string) {
   return JSON.parse(s);
 }
 
-function mergeResults(parts: any[]) {
+function mergeResults(parts: any[], language: string = 'en') {
+  const fieldMappings = {
+    en: {
+      parties: 'parties',
+      effective_date: 'effective_date',
+      term: 'term',
+      notice_period: 'notice_period',
+      payment_terms: 'payment_terms',
+      security_deposit: 'security_deposit',
+      maintenance_responsibility: 'maintenance_responsibility',
+      late_fee: 'late_fee',
+      renewal: 'renewal',
+      termination: 'termination',
+      jurisdiction: 'jurisdiction'
+    },
+    hi: {
+      parties: 'पक्षकार',
+      effective_date: 'प्रभावी तिथि',
+      term: 'अवधि',
+      notice_period: 'सूचना अवधि',
+      payment_terms: 'भुगतान शर्तें',
+      security_deposit: 'सुरक्षा जमा',
+      maintenance_responsibility: 'रखरखाव जिम्मेदारी',
+      late_fee: 'विलंब शुल्क',
+      renewal: 'नवीनीकरण',
+      termination: 'समाप्ति',
+      jurisdiction: 'क्षेत्राधिकार'
+    },
+    kn: {
+      parties: 'ಪಕ್ಷಗಳು',
+      effective_date: 'ಪರಿಣಾಮಕಾರಿ ದಿನಾಂಕ',
+      term: 'ಅವಧಿ',
+      notice_period: 'ಸೂಚನೆ ಅವಧಿ',
+      payment_terms: 'ಪಾವತಿ ನಿಯಮಗಳು',
+      security_deposit: 'ಸುರಕ್ಷತಾ ಠೇವಣಿ',
+      maintenance_responsibility: 'ನಿರ್ವಹಣೆ ಜವಾಬ್ದಾರಿ',
+      late_fee: 'ವಿಳಂಬ ಶುಲ್ಕ',
+      renewal: 'ನವೀಕರಣ',
+      termination: 'ಅಂತ್ಯ',
+      jurisdiction: 'ನ್ಯಾಯಪೀಠ'
+    },
+    ta: {
+      parties: 'தரப்புகள்',
+      effective_date: 'பயனுள்ள தேதி',
+      term: 'காலம்',
+      notice_period: 'அறிவிப்பு காலம்',
+      payment_terms: 'கட்டண சொற்கள்',
+      security_deposit: 'பாதுகாப்பு வைப்பு',
+      maintenance_responsibility: 'பராமரிப்பு பொறுப்பு',
+      late_fee: 'தாமத கட்டணம்',
+      renewal: 'புதுப்பித்தல்',
+      termination: 'முடிவு',
+      jurisdiction: 'நீதிமன்ற அதிகார வரம்பு'
+    },
+    te: {
+      parties: 'పక్షాలు',
+      effective_date: 'ప్రభావం తేదీ',
+      term: 'కాలం',
+      notice_period: 'నోటీసు కాలం',
+      payment_terms: 'చెల్లింపు నిబంధనలు',
+      security_deposit: 'సెక్యూరిటీ డిపాజిట్',
+      maintenance_responsibility: 'నిర్వహణ బాధ్యత',
+      late_fee: 'వాయిదా రుసుము',
+      renewal: 'పునరుద్ధరణ',
+      termination: 'అంత్యం',
+      jurisdiction: 'న్యాయపీఠం'
+    },
+    or: {
+      parties: 'ପକ୍ଷଗୁଡ଼ିକ',
+      effective_date: 'ପ୍ରଭାବଶାଳୀ ତାରିଖ',
+      term: 'ଅବଧି',
+      notice_period: 'ନୋଟିସ୍ ଅବଧି',
+      payment_terms: 'ଦେୟ ସର୍ତ୍ତାବଳୀ',
+      security_deposit: 'ସୁରକ୍ଷା ଜମା',
+      maintenance_responsibility: 'ରକ୍ଷଣାବେକ୍ଷଣ ଦାୟିତ୍ୱ',
+      late_fee: 'ବିଳମ୍ବ ଦଣ୍ଡ',
+      renewal: 'ନବୀକରଣ',
+      termination: 'ସମାପ୍ତି',
+      jurisdiction: 'ଅଧିକାର କ୍ଷେତ୍ର'
+    },
+    bn: {
+      parties: 'পক্ষগুলি',
+      effective_date: 'কার্যকর তারিখ',
+      term: 'মেয়াদ',
+      notice_period: 'নোটিশ সময়কাল',
+      payment_terms: 'পেমেন্ট শর্তাবলী',
+      security_deposit: 'নিরাপত্তা জমা',
+      maintenance_responsibility: 'রক্ষণাবেক্ষণ দায়িত্ব',
+      late_fee: 'বিলম্ব ফি',
+      renewal: 'পুনর্নবীকরণ',
+      termination: 'সমাপ্তি',
+      jurisdiction: 'আদালতের এখতিয়ার'
+    },
+    bho: {
+      parties: 'पक्ष',
+      effective_date: 'प्रभावी तारीख',
+      term: 'अवधि',
+      notice_period: 'सूचना अवधि',
+      payment_terms: 'भुगतान शर्त',
+      security_deposit: 'सुरक्षा जमा',
+      maintenance_responsibility: 'रखरखाव जिम्मेदारी',
+      late_fee: 'विलंब शुल्क',
+      renewal: 'नवीनीकरण',
+      termination: 'समाप्ति',
+      jurisdiction: 'क्षेत्राधिकार'
+    }
+  };
+
+  const currentMappings = fieldMappings[language] || fieldMappings.en;
+
   const out: any = {
     short_summary: '',
     key_points: [],
@@ -59,21 +168,26 @@ function mergeResults(parts: any[]) {
     risks: [],
     disclaimers: []
   };
+
   out.short_summary = parts.map(p => p.short_summary).filter(Boolean).join('\n\n');
   const kpSet = new Set<string>();
   for (const p of parts) {
     for (const k of (p.key_points || [])) kpSet.add(k.trim());
   }
   out.key_points = Array.from(kpSet).slice(0, 12);
-  for (const field of Object.keys(out.extracted)) {
+
+  // Map localized field names back to standard English keys
+  for (const standardField of Object.keys(out.extracted)) {
+    const localizedField = currentMappings[standardField];
     for (const p of parts) {
-      const v = p.extracted?.[field];
-      if (v && !out.extracted[field]) {
-        out.extracted[field] = v;
+      const v = p.extracted?.[localizedField] || p.extracted?.[standardField];
+      if (v && !out.extracted[standardField]) {
+        out.extracted[standardField] = v;
         break;
       }
     }
   }
+
   for (const p of parts) {
     if (Array.isArray(p.risks)) out.risks.push(...p.risks);
   }
@@ -85,7 +199,129 @@ function mergeResults(parts: any[]) {
   return out;
 }
 
-function buildChunkPrompt(chunk: string) {
+function buildChunkPrompt(chunk: string, language: string = 'en') {
+  const languageInstructions = {
+    en: "Write in simple, plain English.",
+    es: "Escribe en español simple y claro.",
+    fr: "Écrivez en français simple et clair.",
+    hi: "सरल, स्पष्ट हिंदी में लिखें।",
+    kn: "ಸರಳ, ಸ್ಪಷ್ಟ ಕನ್ನಡದಲ್ಲಿ ಬರೆಯಿರಿ.",
+    ta: "எளிமையான, தெளிவான தமிழ் மொழியில் எழுதவும்.",
+    te: "సరళమైన, స్పష్టమైన తెలుగు భాషలో రాయండి.",
+    or: "ସରଳ, ସ୍ପଷ୍ଟ ଓଡ଼ିଆ ଭାଷାରେ ଲେଖନ୍ତୁ।",
+    bn: "সহজ, পরিষ্কার বাংলা ভাষায় লিখুন।",
+    bho: "सरल, स्पष्ट भोजपुरी में लिखीं।"
+  };
+
+  const fieldNames = {
+    en: {
+      parties: "Parties",
+      effective_date: "Effective Date",
+      term: "Term",
+      notice_period: "Notice Period",
+      payment_terms: "Payment Terms",
+      security_deposit: "Security Deposit",
+      maintenance_responsibility: "Maintenance Responsibility",
+      late_fee: "Late Fee",
+      renewal: "Renewal",
+      termination: "Termination",
+      jurisdiction: "Jurisdiction"
+    },
+    hi: {
+      parties: "पक्षकार",
+      effective_date: "प्रभावी तिथि",
+      term: "अवधि",
+      notice_period: "सूचना अवधि",
+      payment_terms: "भुगतान शर्तें",
+      security_deposit: "सुरक्षा जमा",
+      maintenance_responsibility: "रखरखाव जिम्मेदारी",
+      late_fee: "विलंब शुल्क",
+      renewal: "नवीनीकरण",
+      termination: "समाप्ति",
+      jurisdiction: "क्षेत्राधिकार"
+    },
+    kn: {
+      parties: "ಪಕ್ಷಗಳು",
+      effective_date: "ಪರಿಣಾಮಕಾರಿ ದಿನಾಂಕ",
+      term: "ಅವಧಿ",
+      notice_period: "ಸೂಚನೆ ಅವಧಿ",
+      payment_terms: "ಪಾವತಿ ನಿಯಮಗಳು",
+      security_deposit: "ಸುರಕ್ಷತಾ ಠೇವಣಿ",
+      maintenance_responsibility: "ನಿರ್ವಹಣೆ ಜವಾಬ್ದಾರಿ",
+      late_fee: "ವಿಳಂಬ ಶುಲ್ಕ",
+      renewal: "ನವೀಕರಣ",
+      termination: "ಅಂತ್ಯ",
+      jurisdiction: "ನ್ಯಾಯಪೀಠ"
+    },
+    ta: {
+      parties: "தரப்புகள்",
+      effective_date: "பயனுள்ள தேதி",
+      term: "காலம்",
+      notice_period: "அறிவிப்பு காலம்",
+      payment_terms: "கட்டண சொற்கள்",
+      security_deposit: "பாதுகாப்பு வைப்பு",
+      maintenance_responsibility: "பராமரிப்பு பொறுப்பு",
+      late_fee: "தாமத கட்டணம்",
+      renewal: "புதுப்பித்தல்",
+      termination: "முடிவு",
+      jurisdiction: "நீதிமன்ற அதிகார வரம்பு"
+    },
+    te: {
+      parties: "పక్షాలు",
+      effective_date: "ప్రభావం తేదీ",
+      term: "కాలం",
+      notice_period: "నోటీసు కాలం",
+      payment_terms: "చెల్లింపు నిబంధనలు",
+      security_deposit: "సెక్యూరిటీ డిపాజిట్",
+      maintenance_responsibility: "నిర్వహణ బాధ్యత",
+      late_fee: "వాయిదా రుసుము",
+      renewal: "పునరుద్ధరణ",
+      termination: "అంత్యం",
+      jurisdiction: "న్యాయపీఠం"
+    },
+    or: {
+      parties: "ପକ୍ଷଗୁଡ଼ିକ",
+      effective_date: "ପ୍ରଭାବଶାଳୀ ତାରିଖ",
+      term: "ଅବଧି",
+      notice_period: "ନୋଟିସ୍ ଅବଧି",
+      payment_terms: "ଦେୟ ସର୍ତ୍ତାବଳୀ",
+      security_deposit: "ସୁରକ୍ଷା ଜମା",
+      maintenance_responsibility: "ରକ୍ଷଣାବେକ୍ଷଣ ଦାୟିତ୍ୱ",
+      late_fee: "ବିଳମ୍ବ ଦଣ୍ଡ",
+      renewal: "ନବୀକରଣ",
+      termination: "ସମାପ୍ତି",
+      jurisdiction: "ଅଧିକାର କ୍ଷେତ୍ର"
+    },
+    bn: {
+      parties: "পক্ষগুলি",
+      effective_date: "কার্যকর তারিখ",
+      term: "মেয়াদ",
+      notice_period: "নোটিশ সময়কাল",
+      payment_terms: "পেমেন্ট শর্তাবলী",
+      security_deposit: "নিরাপত্তা জমা",
+      maintenance_responsibility: "রক্ষণাবেক্ষণ দায়িত্ব",
+      late_fee: "বিলম্ব ফি",
+      renewal: "পুনর্নবীকরণ",
+      termination: "সমাপ্তি",
+      jurisdiction: "আদালতের এখতিয়ার"
+    },
+    bho: {
+      parties: "पक्ष",
+      effective_date: "प्रभावी तारीख",
+      term: "अवधि",
+      notice_period: "सूचना अवधि",
+      payment_terms: "भुगतान शर्त",
+      security_deposit: "सुरक्षा जमा",
+      maintenance_responsibility: "रखरखाव जिम्मेदारी",
+      late_fee: "विलंब शुल्क",
+      renewal: "नवीनीकरण",
+      termination: "समाप्ति",
+      jurisdiction: "क्षेत्राधिकार"
+    }
+  };
+
+  const currentFieldNames = fieldNames[language] || fieldNames.en;
+
   return `
 You are a legal document explainer. Read the following contract excerpt and return STRICT JSON ONLY
 matching this schema (no markdown, no extra text):
@@ -93,17 +329,17 @@ matching this schema (no markdown, no extra text):
   "short_summary": "string",
   "key_points": ["string", "..."],
   "extracted": {
-    "parties": "string",
-    "effective_date": "string",
-    "term": "string",
-    "notice_period": "string",
-    "payment_terms": "string",
-    "security_deposit": "string",
-    "maintenance_responsibility": "string",
-    "late_fee": "string",
-    "renewal": "string",
-    "termination": "string",
-    "jurisdiction": "string"
+    "${currentFieldNames.parties}": "string",
+    "${currentFieldNames.effective_date}": "string",
+    "${currentFieldNames.term}": "string",
+    "${currentFieldNames.notice_period}": "string",
+    "${currentFieldNames.payment_terms}": "string",
+    "${currentFieldNames.security_deposit}": "string",
+    "${currentFieldNames.maintenance_responsibility}": "string",
+    "${currentFieldNames.late_fee}": "string",
+    "${currentFieldNames.renewal}": "string",
+    "${currentFieldNames.termination}": "string",
+    "${currentFieldNames.jurisdiction}": "string"
   },
   "risks": [
     { "label": "string", "severity": "low|medium|high", "why": "string", "quote": "string" }
@@ -111,7 +347,7 @@ matching this schema (no markdown, no extra text):
   "disclaimers": ["string"]
 }
 Rules:
-- Write in simple, plain English.
+- ${languageInstructions[language] || languageInstructions.en}
 - If a field is not stated, set it to "NOT STATED".
 - In risks, include a brief direct quote supporting each risk.
 - Do NOT add explanations outside JSON.
@@ -205,8 +441,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized - Invalid token' }, { status: 401 });
     }
 
-    const { gcsUri, documentId } = await req.json();
-    console.log('Request data:', { gcsUri, documentId });
+    const { gcsUri, documentId, language = 'en' } = await req.json();
+    console.log('Request data:', { gcsUri, documentId, language });
     
     if (!gcsUri) {
       console.error('Missing gcsUri in request');
@@ -297,7 +533,7 @@ export async function POST(req: NextRequest) {
       const chunk = chunks[i];
       console.log(`Processing chunk ${i + 1}/${chunks.length}...`);
       
-      const prompt = buildChunkPrompt(chunk);
+      const prompt = buildChunkPrompt(chunk, language);
       try {
         const result = await askGeminiForJson(prompt);
         perChunkResults.push(result);
@@ -312,7 +548,7 @@ export async function POST(req: NextRequest) {
     }
     
     console.log('Merging chunk results...');
-    const merged = mergeResults(perChunkResults);
+    const merged = mergeResults(perChunkResults, language);
     if (!merged.disclaimers?.length) {
       merged.disclaimers = ['This is an automated, informational summary and not legal advice.'];
     }

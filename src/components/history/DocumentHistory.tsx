@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useLanguage } from "@/contexts/LanguageContext";
 import {
   collection,
   query,
@@ -28,6 +30,8 @@ interface DocumentRecord {
 
 export default function DocumentHistory() {
   const { user } = useAuth();
+  const { t } = useTranslation();
+  const { language } = useLanguage();
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -76,7 +80,7 @@ export default function DocumentHistory() {
       setDocuments(docs);
       setVisibleCount(3); // Reset to show only 3 initially
     } catch (err: any) {
-      setError("Failed to fetch documents: " + err.message);
+      setError(t("analyzeError") + ": " + err.message);
     } finally {
       setLoading(false);
     }
@@ -108,12 +112,12 @@ export default function DocumentHistory() {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (error) {
-      setError("Download failed: " + (error as Error).message);
+      setError(t("uploadFailed") + ": " + (error as Error).message);
     }
   };
 
   const handleDelete = async (docId: string) => {
-    if (!confirm("Are you sure you want to delete this document?")) return;
+    if (!confirm(t("delete") + "?")) return;
 
     try {
       await deleteDoc(doc(db, "documents", docId));
@@ -137,6 +141,7 @@ export default function DocumentHistory() {
         body: JSON.stringify({
           gcsUri: document.gsUri,
           documentId: document.id,
+          language: language,
         }),
       });
 
@@ -171,6 +176,7 @@ export default function DocumentHistory() {
         <button
           onClick={() => setError("")}
           className="ml-2 text-red-500 hover:text-red-700"
+          aria-label={t("close")}
         >
           ×
         </button>
@@ -181,7 +187,7 @@ export default function DocumentHistory() {
   if (documents.length === 0) {
     return (
       <div className="text-center py-8 text-gray-500">
-        <p>No documents found. Upload your first document to get started!</p>
+        <p>{t("noDocuments")}</p>
       </div>
     );
   }
@@ -189,7 +195,7 @@ export default function DocumentHistory() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold mb-4" style={{ color: "#3a5a40" }}>
-        📋 Document History
+        {t("documentHistory")}
       </h2>
 
       <div
@@ -225,7 +231,7 @@ export default function DocumentHistory() {
                   variant="outline"
                   className="text-xs px-3 py-1 flex-shrink-0"
                 >
-                  View Details
+                  {t("viewDetails")}
                 </Button>
 
                 <Button
@@ -237,7 +243,7 @@ export default function DocumentHistory() {
                   variant="outline"
                   className="text-xs px-3 py-1 flex-shrink-0"
                 >
-                  View PDF
+                  {t("viewPDF")}
                 </Button>
 
                 <Button
@@ -249,7 +255,7 @@ export default function DocumentHistory() {
                   variant="destructive"
                   className="text-xs px-3 py-1 flex-shrink-0"
                 >
-                  Delete
+                  {t("delete")}
                 </Button>
               </div>
             </div>
@@ -265,7 +271,7 @@ export default function DocumentHistory() {
               className="w-full text-sm"
               style={{ backgroundColor: "#dad7cd", color: "#344e41" }}
             >
-              Load More ({documents.length - visibleCount} remaining)
+              {t("loadMore")} ({documents.length - visibleCount} {t("remaining")})
             </Button>
           </div>
         )}

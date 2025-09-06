@@ -2,13 +2,18 @@
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import Button from '../ui/Button';
 import UserProfile from '../auth/UserProfile';
 
 export default function Navbar() {
   const { user, userProfile, logout } = useAuth();
+  const { language, setLanguage } = useLanguage();
+  const { t } = useTranslation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showLanguageDropdown, setShowLanguageDropdown] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -37,11 +42,94 @@ export default function Navbar() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-bold text-white">Lawlytics</h1>
+              <h1 className="text-xl font-bold text-white">{t('appTitle')}</h1>
             </div>
 
             {user ? (
               <div className="flex items-center space-x-4">
+                {/* Language Selector */}
+                <div className="relative">
+                  <button
+                    onClick={() => setShowLanguageDropdown(!showLanguageDropdown)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-[#A8BCA1] bg-opacity-10 rounded-md text-white hover:bg-opacity-20 transition-colors"
+                  >
+                    <span className="text-sm">
+                      {language === 'en' ? 'English' :
+                       language === 'hi' ? 'हिंदी' :
+                       language === 'mr' ? 'मराठी' :
+                       language === 'kn' ? 'ಕನ್ನಡ' :
+                       language === 'ta' ? 'தமிழ்' :
+                       language === 'te' ? 'తెలుగు' :
+                       language === 'or' ? 'ଓଡ଼ିଆ' :
+                       language === 'bn' ? 'বাংলা' :
+                       language === 'bho' ? 'भोजपुरी' :
+                       'Language'}
+                    </span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {showLanguageDropdown && (
+                    <div className="absolute right-0 mt-2 w-32 bg-white rounded-md shadow-lg z-10">
+                      <div className="py-1">
+                        <button
+                          onClick={() => { setLanguage('en'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          English
+                        </button>
+                        <button
+                          onClick={() => { setLanguage('hi'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          हिंदी (Hindi)
+                        </button>
+                        <button
+                          onClick={() => { setLanguage('mr'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          मराठी (Marathi)
+                        </button>
+                        <button
+                          onClick={() => { setLanguage('kn'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          ಕನ್ನಡ (Kannada)
+                        </button>
+                        <button
+                          onClick={() => { setLanguage('ta'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          தமிழ் (Tamil)
+                        </button>
+                        <button
+                          onClick={() => { setLanguage('te'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          తెలుగు (Telugu)
+                        </button>
+                        <button
+                          onClick={() => { setLanguage('or'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          ଓଡ଼ିଆ (Odia)
+                        </button>
+                        <button
+                          onClick={() => { setLanguage('bn'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          বাংলা (Bengali)
+                        </button>
+                        <button
+                          onClick={() => { setLanguage('bho'); setShowLanguageDropdown(false); }}
+                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
+                        >
+                          भोजपुरी (Bhojpuri)
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
                 <span className="text-sm text-white hidden sm:block">
                   {userProfile?.displayName || user.email}
                 </span>
@@ -59,13 +147,13 @@ export default function Navbar() {
                           onClick={handleProfileClick}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                         >
-                          Profile
+                          {t('profile')}
                         </button>
                         <button
                           onClick={handleLogout}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 w-full text-left"
                         >
-                          Logout
+                          {t('logout')}
                         </button>
                       </div>
                     </div>
@@ -75,7 +163,7 @@ export default function Navbar() {
             ) : (
               <div className="flex items-center space-x-4">
                 <span className="text-sm text-white">
-                  Please sign in to continue
+                  {t('pleaseSignIn')}
                 </span>
               </div>
             )}

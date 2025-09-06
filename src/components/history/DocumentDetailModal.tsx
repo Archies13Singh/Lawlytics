@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
+import { translations } from '@/utils/translations';
 import Button from '../ui/Button';
 
 interface DocumentRecord {
@@ -28,6 +30,7 @@ export default function DocumentDetailModal({
   onDownload
 }: DocumentDetailModalProps) {
   const [isDownloading, setIsDownloading] = useState(false);
+  const { t } = useTranslation();
 
   if (!isOpen || !document) return null;
 
@@ -44,12 +47,12 @@ export default function DocumentDetailModal({
     if (!document.analysisResult) {
       return (
         <div className="text-center py-8 text-gray-500">
-          <p>No analysis results available for this document.</p>
+          <p>{t("noAnalysisResults")}</p>
           {document.status === 'analyzing' && (
-            <p className="mt-2">Analysis is in progress...</p>
+            <p className="mt-2">{t("analysisInProgress")}</p>
           )}
           {document.status === 'failed' && (
-            <p className="mt-2 text-red-500">Analysis failed. Please try reanalyzing.</p>
+            <p className="mt-2 text-red-500">{t("analysisFailed")}</p>
           )}
         </div>
       );
@@ -61,14 +64,14 @@ export default function DocumentDetailModal({
       <div className="space-y-6">
         {/* Short Summary */}
         <div>
-          <h3 className="text-lg font-semibold mb-2">Summary</h3>
+          <h3 className="text-lg font-semibold mb-2">{t("summary")}</h3>
           <p className="text-gray-700">{analysisResult.short_summary}</p>
         </div>
 
         {/* Key Points */}
         {analysisResult.key_points && analysisResult.key_points.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold mb-2">Key Points</h3>
+            <h3 className="text-lg font-semibold mb-2">{t("keyPoints")}</h3>
             <ul className="list-disc list-inside space-y-1">
               {analysisResult.key_points.map((point: string, index: number) => (
                 <li key={index} className="text-gray-700">{point}</li>
@@ -80,15 +83,15 @@ export default function DocumentDetailModal({
         {/* Extracted Information */}
         {analysisResult.extracted && (
           <div>
-            <h3 className="text-lg font-semibold mb-3">Extracted Information</h3>
+            <h3 className="text-lg font-semibold mb-3">{t("extractedInformation")}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {Object.entries(analysisResult.extracted).map(([key, value]) => (
                 <div key={key} className="bg-gray-50 p-3 rounded">
                   <span className="font-medium text-gray-900 capitalize">
-                    {key.replace(/_/g, ' ')}:
+                    {t(key as keyof typeof translations.en)}:
                   </span>
                   <span className="ml-2 text-gray-700">
-                    {value === 'NOT STATED' ? 'Not stated' : value}
+                    {value === 'NOT STATED' ? t("notStated") : value}
                   </span>
                 </div>
               ))}
@@ -99,7 +102,7 @@ export default function DocumentDetailModal({
         {/* Risks */}
         {analysisResult.risks && analysisResult.risks.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold mb-3">Risks Identified</h3>
+            <h3 className="text-lg font-semibold mb-3">{t("risksIdentified")}</h3>
             <div className="space-y-3">
               {analysisResult.risks.map((risk: any, index: number) => (
                 <div key={index} className="border border-yellow-200 bg-yellow-50 p-4 rounded">
@@ -128,7 +131,7 @@ export default function DocumentDetailModal({
         {/* Disclaimers */}
         {analysisResult.disclaimers && analysisResult.disclaimers.length > 0 && (
           <div>
-            <h3 className="text-lg font-semibold mb-2">Important Disclaimers</h3>
+            <h3 className="text-lg font-semibold mb-2">{t("importantDisclaimers")}</h3>
             <div className="space-y-2">
               {analysisResult.disclaimers.map((disclaimer: string, index: number) => (
                 <div key={index} className="bg-blue-50 border border-blue-200 p-3 rounded">
@@ -171,14 +174,14 @@ export default function DocumentDetailModal({
               size="sm"
               variant="outline"
             >
-              {isDownloading ? 'Downloading...' : 'Download PDF'}
+              {isDownloading ? t("downloading") : t("downloadPDF")}
             </Button>
             <Button
               onClick={onClose}
               size="sm"
               variant="outline"
             >
-              Close
+              {t("close")}
             </Button>
           </div>
         </div>
