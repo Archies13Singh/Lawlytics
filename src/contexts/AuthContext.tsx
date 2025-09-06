@@ -9,13 +9,17 @@ import {
   onAuthStateChanged,
   sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '@/utils/firebase';
 
 interface UserProfile {
   uid: string;
   email: string;
   displayName?: string | null;
+  phone?: string;
+  userRole?: string;
+  simplificationStyle?: string;
+  outputFormat?: string;
   createdAt: Date;
   lastLoginAt: Date;
 }
@@ -52,33 +56,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(user);
       if (user) {
         try {
-          console.log('Creating/updating user profile for:', user.uid);
+          console.log('Loading user profile for:', user.uid);
+          const userDocRef = doc(db, 'users', user.uid);
+          const userDoc = await getDoc(userDocRef);
+          let existingData: any = {};
+          if (userDoc.exists()) {
+            existingData = userDoc.data();
+          }
+
           const newProfile: UserProfile = {
             uid: user.uid,
             email: user.email || '',
-            displayName: user.displayName || null, // Use null instead of undefined
-            createdAt: new Date(),
+            displayName: existingData.displayName || user.displayName || null,
+            phone: existingData.phone,
+            userRole: existingData.userRole,
+            simplificationStyle: existingData.simplificationStyle,
+            outputFormat: existingData.outputFormat,
+            createdAt: existingData.createdAt ? new Date(existingData.createdAt.seconds * 1000) : new Date(),
             lastLoginAt: new Date(),
           };
-          
-          // Only include displayName if it has a value
-          const profileData = {
-            uid: newProfile.uid,
-            email: newProfile.email,
-            createdAt: newProfile.createdAt,
-            lastLoginAt: newProfile.lastLoginAt,
-          };
-          
-          // Add displayName only if it's not null or empty
-          if (newProfile.displayName) {
-            profileData.displayName = newProfile.displayName;
-          }
-          
-          await setDoc(doc(db, 'users', user.uid), profileData);
+
+          // Update Firestore with last login time
+          await setDoc(userDocRef, {
+            lastLoginAt: new Date(),
+          }, { merge: true });
+
           setUserProfile(newProfile);
-          console.log('User profile created/updated successfully');
+          console.log('User profile loaded successfully');
         } catch (error) {
-          console.error('Error creating/updating user profile:', error);
+          console.error('Error loading user profile:', error);
         }
       } else {
         setUserProfile(null);
@@ -117,6 +123,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         uid: result.user.uid,
         email: result.user.email || '',
         displayName,
+        phone: undefined,
+        userRole: undefined,
+        simplificationStyle: undefined,
+        outputFormat: undefined,
         createdAt: new Date(),
         lastLoginAt: new Date(),
       };

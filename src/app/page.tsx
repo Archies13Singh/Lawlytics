@@ -30,7 +30,6 @@ export default function Home() {
           <FileUpload />
         </div>
         <div className="space-y-4 md:space-y-6">
-          <UserProfile />
           <DocumentHistory />
         </div>
       </div>

@@ -30,51 +30,53 @@ export default function FileUpload() {
 
     setUploading(true);
     setError(null);
-    
+
     const formData = new FormData();
     formData.append("file", file);
-    
+
     try {
       // Get the current user's ID token
       const token = await user.getIdToken();
-      
+
       const res = await fetch("/api/upload", {
         method: "POST",
         headers: {
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
           // Don't set Content-Type for FormData - browser will set it automatically
         },
         body: formData,
       });
-      
+
       // Check if response is JSON
-      const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         const text = await res.text();
-        console.error('Non-JSON response:', text);
-        setError(`Upload failed: Server returned ${res.status} - ${res.statusText}`);
+        console.error("Non-JSON response:", text);
+        setError(
+          `Upload failed: Server returned ${res.status} - ${res.statusText}`
+        );
         return;
       }
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
         setFileUrl(data.url);
         localStorage.setItem("gsUri", data.gsUri);
-        
-        console.log('Upload successful, saving to Firebase...');
-        console.log('Document data:', {
+
+        console.log("Upload successful, saving to Firebase...");
+        console.log("Document data:", {
           docId: data.docId,
           fileName: file.name,
           fileUrl: data.url,
           gsUri: data.gsUri,
-          userId: user.uid
+          userId: user.uid,
         });
-        
+
         try {
           // Save document metadata to Firebase
-          const documentRef = doc(db, 'documents', data.docId);
-          
+          const documentRef = doc(db, "documents", data.docId);
+
           const documentData = {
             userId: user.uid,
             fileName: file.name,
@@ -82,37 +84,47 @@ export default function FileUpload() {
             gsUri: data.gsUri,
             objectName: data.objectName,
             uploadedAt: new Date(),
-            status: 'uploaded',
+            status: "uploaded",
             fileSize: file.size,
             fileType: file.type,
           };
-          
-          console.log('Attempting to save document data:', documentData);
-          
+
+          console.log("Attempting to save document data:", documentData);
+
           await setDoc(documentRef, documentData);
-          
-          console.log('✅ Document saved to Firebase successfully');
+
+          console.log("✅ Document saved to Firebase successfully");
         } catch (firebaseError) {
-          console.error('❌ Failed to save document to Firebase:', firebaseError);
-          
+          console.error(
+            "❌ Failed to save document to Firebase:",
+            firebaseError
+          );
+
           if (firebaseError instanceof Error) {
-            if (firebaseError.message.includes('permission')) {
-              setError('Upload successful but failed to save metadata: Permission denied. Check Firestore security rules.');
-            } else if (firebaseError.message.includes('invalid data')) {
-              setError('Upload successful but failed to save metadata: Invalid data format.');
+            if (firebaseError.message.includes("permission")) {
+              setError(
+                "Upload successful but failed to save metadata: Permission denied. Check Firestore security rules."
+              );
+            } else if (firebaseError.message.includes("invalid data")) {
+              setError(
+                "Upload successful but failed to save metadata: Invalid data format."
+              );
             } else {
-              setError(`Upload successful but failed to save metadata: ${firebaseError.message}`);
+              setError(
+                `Upload successful but failed to save metadata: ${firebaseError.message}`
+              );
             }
           } else {
-            setError('Upload successful but failed to save metadata: Unknown error');
+            setError(
+              "Upload successful but failed to save metadata: Unknown error"
+            );
           }
         }
-        
       } else {
         setError(data.error || "Upload failed");
       }
     } catch (err) {
-      console.error('Upload error:', err);
+      console.error("Upload error:", err);
       if (err instanceof Error) {
         setError(`Upload failed: ${err.message}`);
       } else {
@@ -137,15 +149,15 @@ export default function FileUpload() {
     }
 
     // Validate GCS URI format
-    if (!gcsUri.startsWith('gs://')) {
+    if (!gcsUri.startsWith("gs://")) {
       setError("Invalid GCS URI format. Please upload again.");
       return;
     }
 
     // Extract document ID from gsUri for Firebase updates
-    const gsUriParts = gcsUri.split('/');
+    const gsUriParts = gcsUri.split("/");
     const docId = gsUriParts[gsUriParts.length - 2];
-    
+
     if (!docId) {
       setError("Could not extract document ID from GCS URI.");
       return;
@@ -154,93 +166,122 @@ export default function FileUpload() {
     setAnalyzeResult(null);
     setError(null);
     setAnalyzing(true);
-    
+
     try {
-      console.log('Starting analysis for document:', docId);
-      console.log('GCS URI:', gcsUri);
-      
+      console.log("Starting analysis for document:", docId);
+      console.log("GCS URI:", gcsUri);
+
       // Get the current user's ID token
       const token = await user.getIdToken();
-      
+
       const res = await fetch("/api/analyze", {
         method: "POST",
-        headers: { 
+        headers: {
           "Content-Type": "application/json",
-          'Authorization': `Bearer ${token}`,
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           gcsUri: gcsUri,
-          documentId: docId 
+          documentId: docId,
         }),
       });
-      
+
       // Check if response is JSON
-      const contentType = res.headers.get('content-type');
-      if (!contentType || !contentType.includes('application/json')) {
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
         const text = await res.text();
-        console.error('Non-JSON response from analyze API:', text);
-        setError(`Analysis failed: Server returned ${res.status} - ${res.statusText}`);
-        
+        console.error("Non-JSON response from analyze API:", text);
+        setError(
+          `Analysis failed: Server returned ${res.status} - ${res.statusText}`
+        );
+
         // Update document status to failed
         try {
-          const documentRef = doc(db, 'documents', docId);
-          await setDoc(documentRef, {
-            status: 'failed',
-            analyzedAt: new Date(),
-          }, { merge: true });
+          const documentRef = doc(db, "documents", docId);
+          await setDoc(
+            documentRef,
+            {
+              status: "failed",
+              analyzedAt: new Date(),
+            },
+            { merge: true }
+          );
         } catch (firebaseError) {
-          console.error('Failed to update document status to failed:', firebaseError);
+          console.error(
+            "Failed to update document status to failed:",
+            firebaseError
+          );
         }
         return;
       }
-      
+
       const data = await res.json();
-      
+
       if (res.ok) {
-        console.log('Analysis completed successfully:', data.summary);
+        console.log("Analysis completed successfully:", data.summary);
         setAnalyzeResult(data.summary);
-        
+
         // Update document status in Firebase
         try {
-          const documentRef = doc(db, 'documents', docId);
-          await setDoc(documentRef, {
-            status: 'completed',
-            analyzedAt: new Date(),
-            analysisResult: data.summary,
-          }, { merge: true });
-          console.log('✅ Document status updated to completed in Firebase');
+          const documentRef = doc(db, "documents", docId);
+          await setDoc(
+            documentRef,
+            {
+              status: "completed",
+              analyzedAt: new Date(),
+              analysisResult: data.summary,
+            },
+            { merge: true }
+          );
+          console.log("✅ Document status updated to completed in Firebase");
         } catch (firebaseError) {
-          console.error('Failed to update document status to completed:', firebaseError);
+          console.error(
+            "Failed to update document status to completed:",
+            firebaseError
+          );
         }
-        
       } else {
-        console.error('Analysis failed:', data.error);
+        console.error("Analysis failed:", data.error);
         setError(data.error || "Analyze failed");
-        
+
         // Update document status to failed
         try {
-          const documentRef = doc(db, 'documents', docId);
-          await setDoc(documentRef, {
-            status: 'failed',
-            analyzedAt: new Date(),
-          }, { merge: true });
+          const documentRef = doc(db, "documents", docId);
+          await setDoc(
+            documentRef,
+            {
+              status: "failed",
+              analyzedAt: new Date(),
+            },
+            { merge: true }
+          );
         } catch (firebaseError) {
-          console.error('Failed to update document status to failed:', firebaseError);
+          console.error(
+            "Failed to update document status to failed:",
+            firebaseError
+          );
         }
       }
     } catch (err) {
-      console.error('Analyze error:', err);
+      console.error("Analyze error:", err);
       setError("Analyze error");
-      
+
       // Update document status to failed
       try {
-        const documentRef = doc(db, 'documents', docId);
-        await setDoc(documentRef, {
-          status: 'failed',
-          analyzedAt: new Date(),
-        }, { merge: true });
+        const documentRef = doc(db, "documents", docId);
+        await setDoc(
+          documentRef,
+          {
+            status: "failed",
+            analyzedAt: new Date(),
+          },
+          { merge: true }
+        );
       } catch (firebaseError) {
-        console.error('Failed to update document status to failed:', firebaseError);
+        console.error(
+          "Failed to update document status to failed:",
+          firebaseError
+        );
       }
     } finally {
       setAnalyzing(false);
@@ -257,21 +298,29 @@ export default function FileUpload() {
 
   return (
     <div className="space-y-4">
-      <Input
-        type="file"
-        onChange={(e) => setFile(e.target.files?.[0] || null)}
-        accept=".pdf,.doc,.docx"
-      />
-      <Button onClick={handleUpload} disabled={uploading} loading={uploading}>
-        Upload
-      </Button>
-      <Button
-        onClick={handleAnalyze}
-        disabled={uploading || !localStorage.getItem("gsUri")}
-        loading={analyzing}
-      >
-        Analyze
-      </Button>
+      <div className="flex flex-col justify-end sm:items-center sm:gap-4 gap-2">
+        <Input
+          type="file"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          accept=".pdf,.doc,.docx"
+        />
+        <div>
+          <Button
+            onClick={handleUpload}
+            disabled={uploading}
+            loading={uploading}
+          >
+            Upload
+          </Button>
+          <Button
+            onClick={handleAnalyze}
+            disabled={uploading || !localStorage.getItem("gsUri")}
+            loading={analyzing}
+          >
+            Analyze
+          </Button>
+        </div>
+      </div>
       {analyzeResult && (
         <div className="bg-green-50 p-4 rounded border text-sm space-y-4">
           <div>
@@ -289,31 +338,67 @@ export default function FileUpload() {
           <div>
             <div className="font-bold mb-1">Important Terms</div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-              {Object.entries(analyzeResult.extracted || {}).map(([key, value]) => (
-                <div key={key} className="bg-white border rounded p-2">
-                  <div className="font-semibold capitalize">{key.replace(/_/g, ' ')}</div>
-                  <div className="text-gray-700 break-words">{value}</div>
-                </div>
-              ))}
+              {Object.entries(analyzeResult.extracted || {}).map(
+                ([key, value]) => (
+                  <div key={key} className="bg-white border rounded p-2">
+                    <div className="font-semibold capitalize">
+                      {key.replace(/_/g, " ")}
+                    </div>
+                    <div className="text-gray-700 break-words">{value}</div>
+                  </div>
+                )
+              )}
             </div>
           </div>
           <div>
             <div className="font-bold mb-1">Potential Risks</div>
             <ul className="space-y-2">
-              {analyzeResult.risks?.map((risk: { label: string; severity: string; why: string; quote: string }, idx: number) => (
-                <li key={idx} className="bg-red-50 border-l-4 border-red-400 p-2 rounded">
-                  <div className="flex items-center gap-2">
-                    <span className="font-semibold">{risk.label}</span>
-                    <span className={`px-2 py-0.5 rounded text-xs font-bold bg-${risk.severity === 'high' ? 'red' : risk.severity === 'medium' ? 'yellow' : 'green'}-200 text-${risk.severity === 'high' ? 'red' : risk.severity === 'medium' ? 'yellow' : 'green'}-800`}>{risk.severity}</span>
-                  </div>
-                  <div className="italic text-gray-700">&quot;{risk.quote}&quot;</div>
-                  <div className="text-xs text-gray-600 mt-1">{risk.why}</div>
-                </li>
-              ))}
+              {analyzeResult.risks?.map(
+                (
+                  risk: {
+                    label: string;
+                    severity: string;
+                    why: string;
+                    quote: string;
+                  },
+                  idx: number
+                ) => (
+                  <li
+                    key={idx}
+                    className="bg-red-50 border-l-4 border-red-400 p-2 rounded"
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold">{risk.label}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded text-xs font-bold bg-${
+                          risk.severity === "high"
+                            ? "red"
+                            : risk.severity === "medium"
+                            ? "yellow"
+                            : "green"
+                        }-200 text-${
+                          risk.severity === "high"
+                            ? "red"
+                            : risk.severity === "medium"
+                            ? "yellow"
+                            : "green"
+                        }-800`}
+                      >
+                        {risk.severity}
+                      </span>
+                    </div>
+                    <div className="italic text-gray-700">
+                      &quot;{risk.quote}&quot;
+                    </div>
+                    <div className="text-xs text-gray-600 mt-1">{risk.why}</div>
+                  </li>
+                )
+              )}
             </ul>
           </div>
           <div className="text-xs text-gray-500 text-center pt-2 border-t">
-            {analyzeResult.disclaimers?.[0] || 'This is an automated, informational summary and not legal advice.'}
+            {analyzeResult.disclaimers?.[0] ||
+              "This is an automated, informational summary and not legal advice."}
           </div>
         </div>
       )}
