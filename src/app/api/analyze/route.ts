@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
+// Ensure this route runs on the Node.js runtime (not Edge) so GCP SDK auth works
+export const runtime = 'nodejs';
 import { legalModel } from '@/utils/vertexClient';
 import { getDocumentFromGCS, downloadGcsObject } from '@/utils/gcsRead';
 import { docaiClient, DOC_PROCESSOR_NAME } from '@/utils/docaiClient';
 import { adminAuth, adminDb } from '@/utils/firebaseAdmin';
-import { doc, updateDoc } from 'firebase-admin/firestore';
+import { getFirestore } from 'firebase-admin/firestore';
 
 // --- Utilities (from simplify) ---
 function splitIntoChunks(text: string, maxChars = 15000): string[] {
@@ -384,37 +386,71 @@ async function askGeminiForJson(prompt: string) {
 
 // New function to check if document is legal
 async function isLegalDocument(text: string): Promise<boolean> {
+  // Heuristic pre-check to reduce false negatives without an LLM call
+  const sample = text.substring(0, 4000);
+  const lower = sample.toLowerCase();
+  const legalKeywords = [
+    'agreement', 'contract', 'lease', 'rental', 'terms of service', 'privacy policy',
+    'legal notice', 'governing law', 'jurisdiction', 'hereby', 'whereas', 'party', 'parties',
+    'tenant', 'landlord', 'indemnify', 'liability', 'termination', 'effective date',
+    'consideration', 'warranty', 'arbitration', 'venue', 'severability', 'entire agreement',
+  ];
+  let hits = 0;
+  for (const kw of legalKeywords) {
+    if (lower.includes(kw)) hits++;
+  }
+  if (hits >= 2) {
+    return true; // obvious legal signals; short-circuit
+  }
+
+  // Fallback: model-based classification
+  const textSample = sample; // reuse prepared sample
   const prompt = `
-You are a classifier. Determine if the following document is a legal document or not.
-Answer with STRICT JSON ONLY:
+You are a legal document classifier. Analyze the following document text and determine if it is a legal document.
+
+Legal documents include: contracts, agreements, leases, rental agreements, terms of service, privacy policies, legal notices, court documents, wills, deeds, licenses, permits, legal forms, etc.
+
+Non-legal documents include: novels, articles, blogs, recipes, manuals, marketing materials, personal letters, etc.
+
+Document text:
+"""${textSample}"""
+
+Respond with ONLY this JSON format:
 {
-  "isLegal": true|false,
-  "reason": "string"
+  "isLegal": true,
+  "reason": "This appears to be a rental agreement with legal terms and conditions"
 }
-Document:
-"""${text.slice(0, 1000)}"""
-Rules:
-- Answer only with JSON, no extra text.
-- If the document is legal, "isLegal" should be true, else false.
-- Provide a brief reason.
-`.trim();
+
+OR
+
+{
+  "isLegal": false,
+  "reason": "This appears to be a non-legal document like an article or story"
+}
+
+Be generous in classifying documents as legal if they contain any legal language, terms, conditions, or formal structure.`.trim();
 
   try {
     const resp = await legalModel.generateContent({
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 100,
+        temperature: 0.1,
+        maxOutputTokens: 150,
       },
       safetySettings: [],
     });
+
     const textResp = resp.response?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    console.log('Legal document check response:', textResp);
+
     const parsed = safeJsonParse(textResp);
+    console.log('Parsed legal check result:', parsed);
+
     return parsed.isLegal === true;
   } catch (error) {
     console.error('Error in isLegalDocument:', error);
-    // Fail safe: assume not legal if error
-    return false;
+    // Fail safe: assume it IS legal if error (more permissive approach)
+    return true;
   }
 }
 
@@ -453,8 +489,8 @@ export async function POST(req: NextRequest) {
     if (documentId) {
       try {
         console.log('Updating document status to analyzing...');
-        const documentRef = doc(adminDb, 'documents', documentId);
-        await updateDoc(documentRef, {
+        const documentRef = adminDb.collection('documents').doc(documentId);
+        await documentRef.update({
           status: 'analyzing',
           analyzedAt: new Date(),
         });
@@ -509,8 +545,8 @@ export async function POST(req: NextRequest) {
       console.error('Document is not legal');
       if (documentId) {
         try {
-          const documentRef = doc(adminDb, 'documents', documentId);
-          await updateDoc(documentRef, {
+          const documentRef = adminDb.collection('documents').doc(documentId);
+          await documentRef.update({
             status: 'failed',
             analyzedAt: new Date(),
             error: 'Document is not a legal document',
@@ -559,8 +595,8 @@ export async function POST(req: NextRequest) {
     if (documentId) {
       try {
         console.log('Updating document status to completed...');
-        const documentRef = doc(adminDb, 'documents', documentId);
-        await updateDoc(documentRef, {
+        const documentRef = adminDb.collection('documents').doc(documentId);
+        await documentRef.update({
           status: 'completed',
           analyzedAt: new Date(),
           analysisResult: merged,
@@ -587,8 +623,8 @@ export async function POST(req: NextRequest) {
       const { documentId } = await req.json().catch(() => ({}));
       if (documentId) {
         console.log('Updating document status to failed...');
-        const documentRef = doc(adminDb, 'documents', documentId);
-        await updateDoc(documentRef, {
+        const documentRef = adminDb.collection('documents').doc(documentId);
+        await documentRef.update({
           status: 'failed',
           analyzedAt: new Date(),
         });
