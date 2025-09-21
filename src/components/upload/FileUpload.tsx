@@ -382,14 +382,14 @@ export default function FileUpload() {
               </svg>
             </div>
             <div className="flex-1">
-              <div className="text-sm font-medium text-primary">Click to upload or drag & drop</div>
+              <div className="text-sm font-medium text-primary">{t('uploadCta')}</div>
               <div className="text-xs text-gray-600">PDF, DOC, DOCX up to 10MB</div>
             </div>
-            <Button type="button">Browse</Button>
+            <Button type="button">{t('browse')}</Button>
           </div>
           {file && (
             <div className="mt-3 text-xs text-gray-700">
-              Selected: <span className="font-medium">{file.name}</span>
+              {t('selectedLabel')} <span className="font-medium">{file.name}</span>
               {typeof file.size === 'number' && (
                 <span className="ml-1 text-gray-500">({(file.size / (1024 * 1024)).toFixed(2)} MB)</span>
               )}
@@ -402,7 +402,7 @@ export default function FileUpload() {
             disabled={uploading}
             loading={uploading || analyzing}
           >
-            Upload & Analyze
+            {t('uploadAndAnalyze')}
           </Button>
         </div>
       </div>

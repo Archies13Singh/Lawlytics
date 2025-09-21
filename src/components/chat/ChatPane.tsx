@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import Button from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
 import Input from '@/components/ui/Input';
@@ -26,6 +27,7 @@ interface FireDocItem {
 export default function ChatPane() {
   const { user, userProfile } = useAuth();
   const { language } = useLanguage();
+  const { t } = useTranslation();
   const [documents, setDocuments] = useState<FireDocItem[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string>('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -40,6 +42,7 @@ export default function ChatPane() {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [analyzing, setAnalyzing] = useState(false);
+  const [pendingDeleteConvId, setPendingDeleteConvId] = useState<string | null>(null);
 
   const canChat = useMemo(() => !!user && !!activeConv, [user, activeConv]);
 
@@ -111,10 +114,13 @@ export default function ChatPane() {
     })();
   }, [user]);
 
-  async function deleteConversation(id: string) {
-    if (!user) return;
-    const ok = window.confirm('Delete this conversation? This cannot be undone.');
-    if (!ok) return;
+  function openDeleteConversation(id: string) {
+    setPendingDeleteConvId(id);
+  }
+
+  async function deleteConversationConfirmed() {
+    if (!user || !pendingDeleteConvId) return;
+    const id = pendingDeleteConvId;
     const token = await user.getIdToken();
     const res = await fetch(`/api/conversations?id=${encodeURIComponent(id)}`, {
       method: 'DELETE',
@@ -127,9 +133,11 @@ export default function ChatPane() {
         setSelectedDocId('');
         setMessages([{ role: 'assistant', content: 'Conversation deleted. Click + to upload and start a new chat.' }]);
       }
+      setPendingDeleteConvId(null);
     } else {
       const j = await res.json().catch(() => ({} as any));
-      alert(j?.error || 'Failed to delete');
+      setError(j?.error || 'Failed to delete');
+      setPendingDeleteConvId(null);
     }
   }
 
@@ -336,6 +344,25 @@ export default function ChatPane() {
               + New
             </Button>
           </div>
+
+      {/* Delete conversation confirmation modal */}
+      {pendingDeleteConvId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPendingDeleteConvId(null)} />
+          <div className="relative bg-white rounded-lg shadow-lg w-full max-w-sm mx-4 p-5">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('confirmDeleteTitle')}</h3>
+            <p className="text-sm text-gray-700 mb-4">{t('confirmDeleteMessage')}</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPendingDeleteConvId(null)}>
+                {t('cancel')}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={deleteConversationConfirmed}>
+                {t('delete')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
           <div className="flex-1 overflow-auto space-y-1 text-sm">
             {conversationsLoading && (
               <div className="space-y-2">
@@ -354,9 +381,9 @@ export default function ChatPane() {
                   <div className="font-medium truncate">{c.title || 'Legal Chat'}</div>
                   <button
                     className="text-xs text-red-600 hover:underline"
-                    onClick={(e) => { e.stopPropagation(); deleteConversation(c.id); }}
+                    onClick={(e) => { e.stopPropagation(); openDeleteConversation(c.id); }}
                   >
-                    Delete
+                    {t('delete')}
                   </button>
                 </div>
                 <div className="text-xs text-gray-500 truncate">doc: {c.documentId}</div>

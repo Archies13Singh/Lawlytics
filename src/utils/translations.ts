@@ -11,6 +11,10 @@ export const translations = {
     upload: "Upload",
     analyze: "Analyze",
     selectFile: "Select a file",
+    uploadCta: "Click to upload or drag & drop",
+    browse: "Browse",
+    selectedLabel: "Selected:",
+    uploadAndAnalyze: "Upload & Analyze",
 
     // Analysis Results
     summary: "Summary",
@@ -55,10 +59,15 @@ export const translations = {
     risksIdentified: "Risks Identified",
     importantDisclaimers: "Important Disclaimers",
     notStated: "Not stated",
-    summary: "Summary",
-    keyPoints: "Key Points",
     downloading: "Downloading...",
     legalDocAIUpload: "Legal Doc AI - Upload",
+
+    // Confirm dialog
+    cancel: "Cancel",
+    confirmDeleteTitle: "Delete document?",
+    confirmDeleteMessage: "Are you sure you want to delete this document? This action cannot be undone.",
+    confirmLogoutTitle: "Sign out?",
+    confirmLogoutMessage: "Are you sure you want to sign out?",
 
     // Extracted Information Fields
     Parties: "Parties",
@@ -86,6 +95,10 @@ export const translations = {
     upload: "अपलोड",
     analyze: "विश्लेषण",
     selectFile: "एक फ़ाइल चुनें",
+    uploadCta: "अपलोड करने के लिए क्लिक करें या फ़ाइल को खींचकर छोड़ें",
+    browse: "ब्राउज़ करें",
+    selectedLabel: "चयनित:",
+    uploadAndAnalyze: "अपलोड करें और विश्लेषण करें",
 
     // Analysis Results
     summary: "सारांश",
@@ -133,6 +146,13 @@ export const translations = {
     notStated: "नहीं बताया गया",
     legalDocAIUpload: "कानूनी दस्तावेज़ AI - अपलोड",
 
+    // Confirm dialog
+    cancel: "रद्द करें",
+    confirmDeleteTitle: "दस्तावेज़ हटाएं?",
+    confirmDeleteMessage: "क्या आप वाकई इस दस्तावेज़ को हटाना चाहते हैं? यह क्रिया वापस नहीं की जा सकती।",
+    confirmLogoutTitle: "साइन आउट करें?",
+    confirmLogoutMessage: "क्या आप वाकई साइन आउट करना चाहते हैं?",
+
     // Extracted Information Fields
     Parties: "पक्षकार",
     effective_date: "प्रभावी तिथि",
@@ -158,6 +178,10 @@ export const translations = {
     upload: "अपलोड",
     analyze: "विश्लेषण",
     selectFile: "एक फाइल निवडा",
+    uploadCta: "अपलोड करण्यासाठी क्लिक करा किंवा फाइल ड्रॅग-ड्रॉप करा",
+    browse: "ब्राउज़",
+    selectedLabel: "निवडलेले:",
+    uploadAndAnalyze: "अपलोड करा आणि विश्लेषण करा",
 
     // Analysis Results
     summary: "सारांश",
@@ -218,6 +242,10 @@ export const translations = {
     upload: "ಅಪ್‌ಲೋಡ್",
     analyze: "ವಿಶ್ಲೇಷಣೆ",
     selectFile: "ಒಂದು ಫೈಲ್ ಆಯ್ಕೆ ಮಾಡಿ",
+    uploadCta: "ಅಪ್‌ಲೋಡ್ ಮಾಡಲು ಕ್ಲಿಕ್ ಮಾಡಿ ಅಥವಾ ಕಡತವನ್ನು ಎಳೆದು ಬಿಡಿ",
+    browse: "ಬ್ರೌಸ್",
+    selectedLabel: "ಆಯ್ಕೆ ಮಾಡಿದದು:",
+    uploadAndAnalyze: "ಅಪ್‌ಲೋಡ್ ಮಾಡಿ ಮತ್ತು ವಿಶ್ಲೇಷಿಸಿ",
 
     // Analysis Results
     summary: "ಸಾರಾಂಶ",
@@ -277,6 +305,10 @@ export const translations = {
     upload: "பதிவேற்று",
     analyze: "பகுப்பாய்வு",
     selectFile: "ஒரு கோப்பைத் தேர்ந்தெடுக்கவும்",
+    uploadCta: "பதிவேற்ற கிளிக் செய்யவும் அல்லது இழுத்து விடவும்",
+    browse: "உலாவுக",
+    selectedLabel: "தேர்ந்தெடுத்தது:",
+    uploadAndAnalyze: "பதிவேற்று & பகுப்பாய்வு",
 
     // Analysis Results
     summary: "சுருக்கம்",
@@ -337,6 +369,10 @@ export const translations = {
     upload: "అప్‌లోడ్",
     analyze: "విశ్లేషణ",
     selectFile: "ఒక ఫైల్ ఎంచుకోండి",
+    uploadCta: "అప్‌లోడ్ చేయడానికి క్లిక్ చేయండి లేదా ఫైల్‌ను డ్రాగ్ చేసి వదలండి",
+    browse: "బ్రౌజ్ చేయండి",
+    selectedLabel: "ఎంచుకున్నది:",
+    uploadAndAnalyze: "అప్‌లోడ్ చేసి విశ్లేషించండి",
 
     // Analysis Results
     summary: "సారాంశం",
@@ -396,6 +432,10 @@ export const translations = {
     upload: "ଅପଲୋଡ୍",
     analyze: "ବିଶ୍ଳେଷଣ",
     selectFile: "ଗୋଟିଏ ଫାଇଲ୍ ଚୟନ କରନ୍ତୁ",
+    uploadCta: "ଅପଲୋଡ୍ ପାଇଁ କ୍ଲିକ୍ କରନ୍ତୁ କିମ୍ବା ଫାଇଲ୍ ଡ୍ରାଗ୍ କରି ଛାଡ଼ନ୍ତୁ",
+    browse: "ବ୍ରାଉଜ୍",
+    selectedLabel: "ଚୟନିତ:",
+    uploadAndAnalyze: "ଅପଲୋଡ୍ କରନ୍ତୁ ଏବଂ ବିଶ୍ଳେଷଣ କରନ୍ତୁ",
 
     // Analysis Results
     summary: "ସାରାଂଶ",
@@ -456,6 +496,10 @@ export const translations = {
     upload: "আপলোড",
     analyze: "বিশ্লেষণ",
     selectFile: "একটি ফাইল নির্বাচন করুন",
+    uploadCta: "আপলোড করতে ক্লিক করুন অথবা ফাইল টেনে এনে ছেড়ে দিন",
+    browse: "ব্রাউজ",
+    selectedLabel: "নির্বাচিত:",
+    uploadAndAnalyze: "আপলোড ও বিশ্লেষণ",
 
     // Analysis Results
     summary: "সারাংশ",
@@ -513,7 +557,10 @@ export const translations = {
     signInToUpload: "दस्तावेज अपलोड और विश्लेषण करे के लिए कृपया साइन इन करीं।",
     upload: "अपलोड",
     analyze: "विश्लेषण",
-    selectFileFirst: "एक फाइल चुनिं",
+    uploadCta: "अपलोड करे खातिर क्लिक करीं या फाइल खींच के छोड़ दीं",
+    browse: "ब्राउज करीं",
+    selectedLabel: "चुनल:",
+    uploadAndAnalyze: "अपलोड करीं आ विश्लेषण करीं",
 
     // Analysis Results
     summary: "सारांश",

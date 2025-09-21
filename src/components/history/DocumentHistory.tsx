@@ -38,6 +38,7 @@ export default function DocumentHistory() {
     useState<DocumentRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [visibleCount, setVisibleCount] = useState(3);
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -106,14 +107,20 @@ export default function DocumentHistory() {
     }
   };
 
-  const handleDelete = async (docId: string) => {
-    if (!confirm(t("delete") + "?")) return;
+  const openDeleteConfirm = (docId: string) => {
+    setPendingDeleteId(docId);
+  };
 
+  const confirmDelete = async () => {
+    if (!pendingDeleteId) return;
+    const docId = pendingDeleteId;
     try {
       await deleteDoc(doc(db, "documents", docId));
-      setDocuments((docs) => docs.filter((doc) => doc.id !== docId));
+      setDocuments((docs) => docs.filter((d) => d.id !== docId));
+      setPendingDeleteId(null);
     } catch (err: any) {
       setError("Failed to delete document: " + err.message);
+      setPendingDeleteId(null);
     }
   };
 
@@ -254,7 +261,7 @@ export default function DocumentHistory() {
                 <Button
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleDelete(document.id);
+                    openDeleteConfirm(document.id);
                   }}
                   size="sm"
                   variant="destructive"
@@ -287,6 +294,25 @@ export default function DocumentHistory() {
         onClose={handleModalClose}
         onDownload={handleDownload}
       />
+
+      {/* Delete confirmation modal */}
+      {pendingDeleteId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPendingDeleteId(null)} />
+          <div className="relative bg-white rounded-lg shadow-lg w-full max-w-sm mx-4 p-5">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('confirmDeleteTitle')}</h3>
+            <p className="text-sm text-gray-700 mb-4">{t('confirmDeleteMessage')}</p>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" size="sm" onClick={() => setPendingDeleteId(null)}>
+                {t('cancel')}
+              </Button>
+              <Button variant="destructive" size="sm" onClick={confirmDelete}>
+                {t('delete')}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

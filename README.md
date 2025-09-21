@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Lawlytics – Legal Document Chat
 
-## Getting Started
+Lawlytics is a Next.js app that lets users upload legal documents and chat with them using RAG on Google Cloud (Document AI + Vertex AI) with Firebase for auth and storage.
 
-First, run the development server:
+- Full documentation: see `docs/README.md`
+- Feature deep-dive: see `docs/LEGAL_CHAT.md`
 
+## Quickstart
+
+1) Install dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2) Configure environment
+- Copy your `.env`/`.env.local` with Google Cloud and Firebase values.
+- Ensure these exist: `GCP_PROJECT_ID`, `GCP_LOCATION`, `GCP_VERTEX_LOCATION`, `VERTEX_MODEL_ID`, `VERTEX_EMBEDDING_MODEL_ID`, `GCS_BUCKET_NAME`, `GCP_KEY_FILE`, `GCP_PROCESSOR_ID`, and Firebase Admin + NEXT_PUBLIC client vars.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3) Run
+```bash
+npm run dev
+# http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Navigate to `/chat` to upload a document, analyze it, and start chatting.
 
-## Learn More
+## Scripts
+- `npm run dev` – start dev server
+- `npm run build` – build
+- `npm run start` – run production
+- `npm run lint` – lint
 
-To learn more about Next.js, take a look at the following resources:
+## Tech
+Next.js 15, React 19, Tailwind 4, Document AI, Vertex AI, Firebase, Firestore.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
