@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Skeleton from "@/components/ui/Skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -344,18 +345,33 @@ export default function FileUpload() {
           accept=".pdf,.doc,.docx"
           aria-label={t("selectFile")}
           title={t("selectFile")}
+          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
         />
         <div>
           <Button
             onClick={handleUpload}
             disabled={uploading}
             loading={uploading || analyzing}
+            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Upload & Analyze
           </Button>
         </div>
       </div>
-      {analyzeResult && (
+      {(uploading || analyzing) && (
+        <div className="panel p-4 rounded border text-sm space-y-3 animate-pulse">
+          <div className="h-5 w-40 bg-gray-200 rounded" />
+          <div className="h-4 w-full bg-gray-200 rounded" />
+          <div className="h-4 w-5/6 bg-gray-200 rounded" />
+          <div className="h-4 w-2/3 bg-gray-200 rounded" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+            <Skeleton className="h-16" />
+          </div>
+        </div>
+      )}
+      {analyzeResult && !analyzing && !uploading && (
         <div className="bg-green-50 p-4 rounded border text-sm space-y-4">
           <div>
             <div className="font-bold text-lg mb-1">{t("summary")}</div>
@@ -374,11 +390,11 @@ export default function FileUpload() {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
               {Object.entries(analyzeResult.extracted || {}).map(
                 ([key, value]) => (
-                  <div key={key} className="bg-white border rounded p-2">
+                  <div key={key} className="panel rounded p-2">
                     <div className="font-semibold capitalize">
                       {t(key as keyof typeof translations.en)}
                     </div>
-                    <div className="text-gray-700 break-words">{value}</div>
+                    <div className="text-gray-700 break-words">{String((value as any) ?? '')}</div>
                   </div>
                 )
               )}

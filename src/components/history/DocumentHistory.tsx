@@ -163,8 +163,36 @@ export default function DocumentHistory() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center py-8">
-        <Loader />
+      <div className="space-y-4 text-primary">
+        <h2 className="text-xl font-semibold mb-2">{t("documentHistory")}</h2>
+        <div className="surface rounded-lg overflow-hidden max-h-96">
+          <div className="grid gap-3 p-4">
+            <div className="panel p-3 rounded-lg shadow-sm animate-pulse">
+              <div className="h-4 w-2/3 bg-gray-200 rounded mb-3" />
+              <div className="flex gap-2">
+                <div className="h-8 w-24 bg-gray-200 rounded" />
+                <div className="h-8 w-24 bg-gray-200 rounded" />
+                <div className="h-8 w-20 bg-gray-200 rounded" />
+              </div>
+            </div>
+            <div className="panel p-3 rounded-lg shadow-sm animate-pulse">
+              <div className="h-4 w-1/2 bg-gray-200 rounded mb-3" />
+              <div className="flex gap-2">
+                <div className="h-8 w-24 bg-gray-200 rounded" />
+                <div className="h-8 w-24 bg-gray-200 rounded" />
+                <div className="h-8 w-20 bg-gray-200 rounded" />
+              </div>
+            </div>
+            <div className="panel p-3 rounded-lg shadow-sm animate-pulse">
+              <div className="h-4 w-1/3 bg-gray-200 rounded mb-3" />
+              <div className="flex gap-2">
+                <div className="h-8 w-24 bg-gray-200 rounded" />
+                <div className="h-8 w-24 bg-gray-200 rounded" />
+                <div className="h-8 w-20 bg-gray-200 rounded" />
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -193,28 +221,18 @@ export default function DocumentHistory() {
   }
 
   return (
-    <div className="space-y-4">
-      <h2 className="text-xl font-semibold mb-4" style={{ color: "#3a5a40" }}>
-        {t("documentHistory")}
-      </h2>
+    <div className="space-y-4 text-primary">
+      <h2 className="text-xl font-semibold mb-2">{t("documentHistory")}</h2>
 
-      <div
-        className="rounded-lg overflow-hidden max-h-96"
-        style={{ backgroundColor: "#A8BCA1" }}
-      >
+      <div className="surface rounded-lg overflow-hidden max-h-96">
         <div className="grid gap-3 p-4">
           {documents.slice(0, visibleCount).map((document) => (
             <div
               key={document.id}
-              className="p-2 rounded-lg shadow-sm"
-              style={{ backgroundColor: "#dad7cd" }}
+              className="panel p-3 rounded-lg shadow-sm"
             >
               <div className="mb-2 min-w-0">
-                <h3
-                  className="font-semibold text-sm"
-                  style={{ color: "#344e41" }}
-                  title={document.fileName}
-                >
+                <h3 className="font-semibold text-sm" title={document.fileName}>
                   {document.fileName.length > 40
                     ? `${document.fileName.slice(0, 40)}...`
                     : document.fileName}
@@ -269,7 +287,6 @@ export default function DocumentHistory() {
               size="sm"
               variant="outline"
               className="w-full text-sm"
-              style={{ backgroundColor: "#dad7cd", color: "#344e41" }}
             >
               {t("loadMore")} ({documents.length - visibleCount} {t("remaining")})
             </Button>

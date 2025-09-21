@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import Button from '@/components/ui/Button';
+import Skeleton from '@/components/ui/Skeleton';
 import Input from '@/components/ui/Input';
 import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { db } from '@/utils/firebase';
@@ -26,8 +27,10 @@ export default function ChatPane() {
   const [documents, setDocuments] = useState<FireDocItem[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string>('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversationsLoading, setConversationsLoading] = useState<boolean>(false);
   const [activeConv, setActiveConv] = useState<string>('');
   const [messages, setMessages] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [messagesLoading, setMessagesLoading] = useState<boolean>(false);
   const [question, setQuestion] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
@@ -202,12 +205,14 @@ export default function ChatPane() {
 
   async function refreshConversations() {
     if (!user) return;
+    setConversationsLoading(true);
     const token = await user.getIdToken();
     const res = await fetch('/api/conversations', {
       headers: { Authorization: `Bearer ${token}` },
     });
     const json = await res.json();
     if (res.ok) setConversations(json.conversations || []);
+    setConversationsLoading(false);
   }
 
   useEffect(() => {
@@ -250,6 +255,7 @@ export default function ChatPane() {
 
   async function loadMessages(convId: string) {
     if (!user) return;
+    setMessagesLoading(true);
     const token = await user.getIdToken();
     const res = await fetch(`/api/chat?conversationId=${convId}`, {
       headers: { Authorization: `Bearer ${token}` },
@@ -258,6 +264,7 @@ export default function ChatPane() {
     if (res.ok) {
       setMessages((json.messages || []).map((m: any) => ({ role: m.role, content: m.content })));
     }
+    setMessagesLoading(false);
   }
 
   async function ask() {
@@ -284,17 +291,24 @@ export default function ChatPane() {
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-      <div className="md:col-span-1 space-y-4">
-        <div className="p-3 border rounded space-y-2">
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 h-[calc(100vh-var(--nav-height))]">
+      <div className="md:col-span-1 space-y-4 h-full">
+        <div className="p-3 border rounded space-y-2 h-[calc(100vh-100px)] flex flex-col">
           <div className="flex items-center justify-between">
             <div className="font-semibold">Conversations</div>
             <Button onClick={startNewConversationUI} disabled={uploading || analyzing}>
               + New
             </Button>
           </div>
-          <div className="max-h-96 overflow-auto space-y-1 text-sm">
-            {conversations.map((c) => (
+          <div className="flex-1 overflow-auto space-y-1 text-sm">
+            {conversationsLoading && (
+              <div className="space-y-2">
+                <Skeleton className="h-10" />
+                <Skeleton className="h-10" />
+                <Skeleton className="h-10" />
+              </div>
+            )}
+            {!conversationsLoading && conversations.map((c) => (
               <div
                 key={c.id}
                 className={`p-2 rounded border cursor-pointer ${activeConv === c.id ? 'bg-blue-50' : 'bg-white'}`}
@@ -312,23 +326,29 @@ export default function ChatPane() {
                 <div className="text-xs text-gray-500 truncate">doc: {c.documentId}</div>
               </div>
             ))}
-            {conversations.length === 0 && (
+            {!conversationsLoading && conversations.length === 0 && (
               <div className="text-gray-500 text-xs">No conversations yet. Click + to upload and start.</div>
             )}
           </div>
         </div>
       </div>
-      <div className="md:col-span-3 flex flex-col border rounded">
+      <div className="md:col-span-3 flex flex-col border rounded h-[calc(100vh-100px)]">
         {(uploading || analyzing) && (
           <div className="px-4 py-2 text-sm bg-blue-50 border-b">
             {uploading ? 'Uploading your document…' : 'Analyzing your document (legal check, text extraction, embeddings)…'}
           </div>
         )}
-        <div className="flex-1 p-4 space-y-3 overflow-auto" style={{ minHeight: 400 }}>
+        <div className="flex-1 p-4 space-y-3 overflow-auto">
           {messages.length === 0 && (
             <div className="text-gray-500 text-sm">Start by clicking the + button to upload a legal document, or select a previous conversation.</div>
           )}
-          {messages.map((m, idx) => (
+          {messagesLoading && (
+            <div className="space-y-3">
+              <Skeleton className="h-16" />
+              <Skeleton className="h-20" />
+            </div>
+          )}
+          {!messagesLoading && messages.map((m, idx) => (
             <div key={idx} className={`p-3 rounded ${m.role === 'user' ? 'bg-gray-100' : 'bg-green-50'}`}>
               <div className="text-xs text-gray-500 mb-1">{m.role}</div>
               <div className="whitespace-pre-wrap">{m.content}</div>
