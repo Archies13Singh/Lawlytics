@@ -3,6 +3,8 @@ import { bucket } from '@/utils/gcsClient';
 import { adminAuth } from '@/utils/firebaseAdmin';
 import { v4 as uuidv4 } from 'uuid';
 
+export const runtime = 'nodejs';
+
 export async function POST(req: Request) {
   try {
     // Verify user authentication

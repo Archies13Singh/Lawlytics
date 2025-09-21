@@ -6,16 +6,40 @@ const location = process.env.GCP_VERTEX_LOCATION || 'us-central1';
 // Use stable prediction-style embedding model by default
 const embeddingModelId = process.env.VERTEX_EMBEDDING_MODEL_ID || 'textembedding-gecko@003';
 
-const keyFilename = process.env.GCP_KEY_FILE || path.join(process.cwd(), 'upload-service.json');
+const keyB64 = process.env.GCP_KEY_JSON_B64;
+const keyEnv = process.env.GCP_KEY_FILE || path.join(process.cwd(), 'upload-service.json');
 
 const BASE_URL = `https://${location}-aiplatform.googleapis.com/v1`;
 const MODEL_PATH = `/projects/${project}/locations/${location}/publishers/google/models/${embeddingModelId}`;
 
 async function getAccessToken(): Promise<string> {
-  const auth = new GoogleAuth({
-    scopes: ['https://www.googleapis.com/auth/cloud-platform'],
-    keyFilename,
-  });
+  const isInline = typeof keyEnv === 'string' && keyEnv.trim().startsWith('{');
+  const auth = new GoogleAuth(
+    keyB64
+      ? (() => {
+          const sa = JSON.parse(Buffer.from(keyB64!, 'base64').toString('utf8'));
+          return {
+            scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+            credentials: { client_email: sa.client_email, private_key: sa.private_key },
+            projectId: sa.project_id || process.env.GCP_PROJECT_ID,
+          };
+        })()
+      : isInline
+      ? {
+          scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+          credentials: (() => {
+            const sa = JSON.parse(keyEnv);
+            return { client_email: sa.client_email, private_key: sa.private_key };
+          })(),
+          projectId: (() => {
+            try { return JSON.parse(keyEnv).project_id || process.env.GCP_PROJECT_ID; } catch { return process.env.GCP_PROJECT_ID; }
+          })(),
+        }
+      : {
+          scopes: ['https://www.googleapis.com/auth/cloud-platform'],
+          keyFilename: path.isAbsolute(keyEnv) ? keyEnv : path.join(process.cwd(), keyEnv),
+        }
+  );
   const client = await auth.getClient();
   const token = await client.getAccessToken();
   if (!token || !token.token) throw new Error('Failed to obtain access token for Vertex AI');

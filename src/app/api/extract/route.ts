@@ -2,9 +2,29 @@ import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import { DocumentProcessorServiceClient } from '@google-cloud/documentai';
 
-const client = new DocumentProcessorServiceClient({
-  keyFilename: path.join(process.cwd(), process.env.GCP_KEY_FILE),
-});
+function createClient(): DocumentProcessorServiceClient {
+  const key = process.env.GCP_KEY_FILE;
+  if (!key) return new DocumentProcessorServiceClient();
+  if (key.trim().startsWith('{')) {
+    try {
+      const sa = JSON.parse(key);
+      const client_email = sa.client_email as string | undefined;
+      const private_key = sa.private_key as string | undefined;
+      const projectId = (sa.project_id as string | undefined) || process.env.GCP_PROJECT_ID;
+      if (!client_email || !private_key) throw new Error('Invalid inline SA JSON for Document AI');
+      return new DocumentProcessorServiceClient({
+        projectId,
+        credentials: { client_email, private_key },
+      } as any);
+    } catch (e) {
+      console.error('Failed to parse inline GCP_KEY_FILE for Document AI route, using path.', e);
+    }
+  }
+  const keyFilename = path.isAbsolute(key) ? key : path.join(process.cwd(), key);
+  return new DocumentProcessorServiceClient({ keyFilename } as any);
+}
+
+const client = createClient();
 
 export async function POST(req: NextRequest) {
   try {
