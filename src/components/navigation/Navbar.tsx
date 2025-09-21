@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { useTranslation } from '@/hooks/useTranslation';
@@ -41,8 +42,15 @@ export default function Navbar() {
       <nav className="bg-[#1B4332] shadow-sm border-b">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <h1 className="text-xl font-bold text-white">{t('appTitle')}</h1>
+            <div className="flex items-center gap-4">
+              <Link href="/" className="text-xl font-bold text-white hover:text-gray-100">
+                {t('appTitle')}
+              </Link>
+              <nav className="hidden sm:flex items-center gap-3">
+                <Link href="/chat" className="text-white/90 hover:text-white text-sm">
+                  Chat
+                </Link>
+              </nav>
             </div>
 
             {user ? (
@@ -131,14 +139,14 @@ export default function Navbar() {
                   )}
                 </div>
                 <span className="text-sm text-white hidden sm:block">
-                  {userProfile?.displayName || user.email}
+                  {userProfile?.displayName || user?.email || 'User'}
                 </span>
                 <div className="relative">
                   <button
                     onClick={toggleDropdown}
                     className="flex items-center justify-center w-8 h-8 bg-white rounded-full text-[#1B4332] font-semibold"
                   >
-                    {userProfile?.displayName ? userProfile.displayName.charAt(0).toUpperCase() : user.email.charAt(0).toUpperCase()}
+                    {(userProfile?.displayName?.charAt(0) || user?.email?.charAt(0) || '?').toUpperCase()}
                   </button>
                   {showDropdown && (
                     <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10">

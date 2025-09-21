@@ -5,6 +5,7 @@ import { legalModel } from '@/utils/vertexClient';
 import { getDocumentFromGCS, downloadGcsObject } from '@/utils/gcsRead';
 import { docaiClient, DOC_PROCESSOR_NAME } from '@/utils/docaiClient';
 import { adminAuth, adminDb } from '@/utils/firebaseAdmin';
+import { embedMany } from '@/utils/embeddings';
 import { getFirestore } from 'firebase-admin/firestore';
 
 // --- Utilities (from simplify) ---
@@ -563,7 +564,7 @@ export async function POST(req: NextRequest) {
     console.log('Splitting text into chunks...');
     const chunks = splitIntoChunks(text);
     console.log('Text split into', chunks.length, 'chunks');
-    
+
     const perChunkResults = [];
     for (let i = 0; i < chunks.length; i++) {
       const chunk = chunks[i];
@@ -582,7 +583,36 @@ export async function POST(req: NextRequest) {
         console.log(`Chunk ${i + 1} processed on retry`);
       }
     }
-    
+
+    // Generate and store embeddings for retrieval in chat
+    try {
+      console.log('Generating embeddings for', chunks.length, 'chunks...');
+      const embeddings = await embedMany(chunks);
+      console.log('Embeddings generated for all chunks. Writing to Firestore...');
+
+      if (documentId) {
+        const batch = adminDb.batch();
+        const chunksColl = adminDb.collection('documentChunks');
+        for (let i = 0; i < chunks.length; i++) {
+          const ref = chunksColl.doc();
+          batch.set(ref, {
+            documentId,
+            chunkIndex: i,
+            text: chunks[i],
+            embedding: embeddings[i],
+            createdAt: new Date(),
+          });
+        }
+        await batch.commit();
+        console.log('Stored', chunks.length, 'chunk embeddings for document', documentId);
+      } else {
+        console.warn('No documentId provided; skipping storage of chunk embeddings');
+      }
+    } catch (error) {
+      console.error('Failed to generate/store embeddings:', error);
+      // continue; chat will be degraded without retrieval
+    }
+
     console.log('Merging chunk results...');
     const merged = mergeResults(perChunkResults, language);
     if (!merged.disclaimers?.length) {

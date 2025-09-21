@@ -125,6 +125,39 @@ export default function FileUpload() {
             );
           }
         }
+
+        // One-click flow: automatically analyze, then create conversation and greet
+        try {
+          await handleAnalyze();
+          // After analyze, create conversation and greet
+          const token2 = await user.getIdToken();
+          const convRes = await fetch('/api/conversations', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token2}` },
+            body: JSON.stringify({ documentId: data.docId }),
+          });
+          const convJson = await convRes.json();
+          if (convRes.ok) {
+            // Persist active conversation and document for ChatPane to pick up
+            localStorage.setItem('activeConversationId', convJson.id);
+            localStorage.setItem('activeDocumentId', data.docId);
+
+            // Send greet message
+            const greetRes = await fetch('/api/chat', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token2}` },
+              body: JSON.stringify({ conversationId: convJson.id, documentId: data.docId, greet: true }),
+            });
+            if (!greetRes.ok) {
+              const gj = await greetRes.json().catch(() => ({}));
+              console.warn('Greet failed:', gj?.error || greetRes.statusText);
+            }
+          } else {
+            console.warn('Auto-create conversation failed:', convJson?.error || convRes.statusText);
+          }
+        } catch (e: any) {
+          console.warn('Auto analyze/conversation failed:', e?.message || e);
+        }
       } else {
         setError(data.error || "Upload failed");
       }
@@ -316,16 +349,9 @@ export default function FileUpload() {
           <Button
             onClick={handleUpload}
             disabled={uploading}
-            loading={uploading}
+            loading={uploading || analyzing}
           >
-            {t('upload')}
-          </Button>
-          <Button
-            onClick={handleAnalyze}
-            disabled={uploading || !localStorage.getItem("gsUri")}
-            loading={analyzing}
-          >
-            {t('analyze')}
+            Upload & Analyze
           </Button>
         </div>
       </div>
