@@ -22,6 +22,25 @@ export default function FileUpload() {
   const [error, setError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzeResult, setAnalyzeResult] = useState<any | null>(null);
+  const [dragActive, setDragActive] = useState(false);
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(true);
+  };
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+  };
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) setFile(f);
+  };
 
   const handleUpload = async () => {
       if (!user) {
@@ -338,21 +357,50 @@ export default function FileUpload() {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col justify-end sm:items-center sm:gap-4 gap-2">
-        <Input
-          type="file"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          accept=".pdf,.doc,.docx"
-          aria-label={t("selectFile")}
-          title={t("selectFile")}
-          className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-        />
+      <div className="flex flex-col sm:items-center gap-3">
+        <div
+          className={`w-full panel rounded-lg p-4 border-2 ${dragActive ? 'border-blue-400 bg-blue-50' : 'border-dashed'} cursor-pointer`}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          onClick={() => document.getElementById('hidden-file-input')?.click()}
+          role="button"
+          aria-label={t('selectFile')}
+        >
+          <input
+            id="hidden-file-input"
+            type="file"
+            accept=".pdf,.doc,.docx"
+            onChange={(e) => setFile(e.target.files?.[0] || null)}
+            className="hidden"
+          />
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full surface border">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-primary">
+                <path d="M12 16a1 1 0 0 1-1-1V9.41l-1.3 1.3a1 1 0 1 1-1.4-1.42l3-3a1 1 0 0 1 1.4 0l3 3a1 1 0 0 1-1.4 1.42L13 9.4V15a1 1 0 0 1-1 1Z"/>
+                <path d="M6 20a4 4 0 0 1-4-4V9a4 4 0 0 1 4-4h2a1 1 0 1 1 0 2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-1a1 1 0 1 1 2 0v1a4 4 0 0 1-4 4H6Z"/>
+              </svg>
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-medium text-primary">Click to upload or drag & drop</div>
+              <div className="text-xs text-gray-600">PDF, DOC, DOCX up to 10MB</div>
+            </div>
+            <Button type="button">Browse</Button>
+          </div>
+          {file && (
+            <div className="mt-3 text-xs text-gray-700">
+              Selected: <span className="font-medium">{file.name}</span>
+              {typeof file.size === 'number' && (
+                <span className="ml-1 text-gray-500">({(file.size / (1024 * 1024)).toFixed(2)} MB)</span>
+              )}
+            </div>
+          )}
+        </div>
         <div>
           <Button
             onClick={handleUpload}
             disabled={uploading}
             loading={uploading || analyzing}
-            className="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
           >
             Upload & Analyze
           </Button>

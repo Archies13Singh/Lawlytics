@@ -8,13 +8,12 @@ import {
   collection,
   query,
   where,
-  getDocs,
+  onSnapshot,
   deleteDoc,
   doc,
 } from "firebase/firestore";
 import { db } from "@/utils/firebase";
 import Button from "../ui/Button";
-import Loader from "../ui/Loader";
 import DocumentDetailModal from "./DocumentDetailModal";
 
 interface DocumentRecord {
@@ -41,50 +40,41 @@ export default function DocumentHistory() {
   const [visibleCount, setVisibleCount] = useState(3);
 
   useEffect(() => {
-    if (user) {
-      fetchDocuments();
-    }
+    if (!user) return;
+    setLoading(true);
+    const q = query(collection(db, "documents"), where("userId", "==", user.uid));
+    const unsub = onSnapshot(
+      q,
+      (querySnapshot) => {
+        const docs: DocumentRecord[] = [];
+        querySnapshot.forEach((d) => {
+          const data = d.data() as any;
+          docs.push({
+            id: d.id,
+            fileName: data.fileName,
+            fileUrl: data.fileUrl,
+            gsUri: data.gsUri,
+            uploadedAt: data.uploadedAt?.toDate ? data.uploadedAt.toDate() : new Date(),
+            analyzedAt: data.analyzedAt?.toDate ? data.analyzedAt.toDate() : undefined,
+            analysisResult: data.analysisResult,
+            status: data.status,
+          });
+        });
+        // Sort newest first
+        docs.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
+        setDocuments(docs);
+        setVisibleCount(3);
+        setLoading(false);
+      },
+      (err) => {
+        setError(t("analyzeError") + ": " + err.message);
+        setLoading(false);
+      }
+    );
+    return () => unsub();
   }, [user]);
 
-  const fetchDocuments = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-      // Use a simpler query that doesn't require composite index
-      const q = query(
-        collection(db, "documents"),
-        where("userId", "==", user.uid)
-      );
-
-      const querySnapshot = await getDocs(q);
-      const docs: DocumentRecord[] = [];
-
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
-        docs.push({
-          id: doc.id,
-          fileName: data.fileName,
-          fileUrl: data.fileUrl,
-          gsUri: data.gsUri,
-          uploadedAt: data.uploadedAt.toDate(),
-          analyzedAt: data.analyzedAt?.toDate(),
-          analysisResult: data.analysisResult,
-          status: data.status,
-        });
-      });
-
-      // Sort documents by uploadedAt in descending order (most recent first)
-      docs.sort((a, b) => b.uploadedAt.getTime() - a.uploadedAt.getTime());
-
-      setDocuments(docs);
-      setVisibleCount(3); // Reset to show only 3 initially
-    } catch (err: any) {
-      setError(t("analyzeError") + ": " + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // fetchDocuments no longer needed because we use onSnapshot realtime updates
 
   const handleDocumentClick = (document: DocumentRecord) => {
     setSelectedDocument(document);
@@ -96,18 +86,18 @@ export default function DocumentHistory() {
     setIsModalOpen(false);
   };
 
-  const handleDownload = async (document: DocumentRecord) => {
+  const handleDownload = async (docRec: DocumentRecord) => {
     try {
-      const response = await fetch(document.fileUrl);
+      const response = await fetch(docRec.fileUrl);
       if (!response.ok) {
         throw new Error("Failed to download file");
       }
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
+      const a = window.document.createElement("a");
       a.href = url;
-      a.download = document.fileName;
-      document.body.appendChild(a);
+      a.download = docRec.fileName;
+      window.document.body.appendChild(a);
       a.click();
       a.remove();
       window.URL.revokeObjectURL(url);
@@ -145,10 +135,7 @@ export default function DocumentHistory() {
         }),
       });
 
-      if (res.ok) {
-        // Refresh documents to show updated status
-        await fetchDocuments();
-      } else {
+      if (!res.ok) {
         const data = await res.json();
         setError("Reanalysis failed: " + (data.error || "Unknown error"));
       }

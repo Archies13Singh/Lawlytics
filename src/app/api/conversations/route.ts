@@ -11,25 +11,28 @@ export async function GET(req: NextRequest) {
     }
     const token = authHeader.substring(7);
     const { uid } = await adminAuth.verifyIdToken(token);
+    const { searchParams } = new URL(req.url);
+    const origin = searchParams.get('origin');
 
     try {
-      const snapshot = await adminDb
+      let ref: FirebaseFirestore.Query = adminDb
         .collection('conversations')
-        .where('userId', '==', uid)
-        .orderBy('createdAt', 'desc')
-        .limit(50)
-        .get();
+        .where('userId', '==', uid);
+      if (origin) {
+        ref = ref.where('origin', '==', origin);
+      }
+      const snapshot = await ref.orderBy('createdAt', 'desc').limit(50).get();
 
       const items = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       return NextResponse.json({ conversations: items });
     } catch (err: any) {
       const msg = String(err?.message || err);
       if (msg.includes('The query requires an index')) {
-        const fallbackSnap = await adminDb
+        let ref2: FirebaseFirestore.Query = adminDb
           .collection('conversations')
-          .where('userId', '==', uid)
-          .limit(200)
-          .get();
+          .where('userId', '==', uid);
+        if (origin) ref2 = ref2.where('origin', '==', origin);
+        const fallbackSnap = await ref2.limit(200).get();
         const items = fallbackSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
         items.sort((a: any, b: any) => {
           const da = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : (a.createdAt?.seconds || 0) * 1000;
@@ -88,7 +91,7 @@ export async function POST(req: NextRequest) {
     const token = authHeader.substring(7);
     const { uid } = await adminAuth.verifyIdToken(token);
 
-    const { documentId, title } = await req.json();
+    const { documentId, title, origin } = await req.json();
     if (!documentId) {
       return NextResponse.json({ error: 'Missing documentId' }, { status: 400 });
     }
@@ -97,6 +100,7 @@ export async function POST(req: NextRequest) {
       userId: uid,
       documentId,
       title: title || 'Legal Chat',
+      origin: origin || 'chat',
       createdAt: new Date(),
       updatedAt: new Date(),
     });

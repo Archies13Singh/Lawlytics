@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useLanguage } from '@/contexts/LanguageContext';
 import Button from '@/components/ui/Button';
 import Skeleton from '@/components/ui/Skeleton';
 import Input from '@/components/ui/Input';
@@ -23,7 +24,8 @@ interface FireDocItem {
 }
 
 export default function ChatPane() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
+  const { language } = useLanguage();
   const [documents, setDocuments] = useState<FireDocItem[]>([]);
   const [selectedDocId, setSelectedDocId] = useState<string>('');
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -40,6 +42,39 @@ export default function ChatPane() {
   const [analyzing, setAnalyzing] = useState(false);
 
   const canChat = useMemo(() => !!user && !!activeConv, [user, activeConv]);
+
+  // Very lightweight language detection using Unicode ranges for major Indic scripts.
+  function detectLanguage(text: string): string {
+    const lc = text.toLowerCase();
+    // Explicit language mentions in ASCII
+    if (lc.includes(' in hindi') || lc.includes(' hindi') || lc.includes('हिंदी')) return 'hi';
+    if (lc.includes(' marathi') || lc.includes(' in marathi') || lc.includes('मराठी')) return 'mr';
+    if (lc.includes(' tamil') || lc.includes(' in tamil') || lc.includes('தமிழ்')) return 'ta';
+    if (lc.includes(' telugu') || lc.includes(' in telugu') || lc.includes('తెలుగు')) return 'te';
+    if (lc.includes(' kannada') || lc.includes(' in kannada') || lc.includes('ಕನ್ನಡ')) return 'kn';
+    if (lc.includes(' odia') || lc.includes(' oriya') || lc.includes(' in odia') || lc.includes('ଓଡ଼ିଆ')) return 'or';
+    if (lc.includes(' bengali') || lc.includes(' in bengali') || lc.includes('বাংলা')) return 'bn';
+    // Devanagari: Hindi, Marathi, Bhojpuri
+    if (/\p{Script=Devanagari}/u.test(text)) {
+      // Prefer Hindi as default for Devanagari
+      return 'hi';
+    }
+    // Bengali
+    if (/\p{Script=Bengali}/u.test(text)) return 'bn';
+    // Tamil
+    if (/\p{Script=Tamil}/u.test(text)) return 'ta';
+    // Telugu
+    if (/\p{Script=Telugu}/u.test(text)) return 'te';
+    // Kannada
+    if (/\p{Script=Kannada}/u.test(text)) return 'kn';
+    // Oriya (Odia)
+    if (/\p{Script=Oriya}/u.test(text)) return 'or';
+    // If contains primarily ASCII, assume English
+    const nonAscii = text.replace(/[\x00-\x7F]/g, '');
+    if (nonAscii.length === 0) return 'en';
+    // Fallback to current UI language
+    return language || 'en';
+  }
 
   useEffect(() => {
     (async () => {
@@ -132,7 +167,7 @@ export default function ChatPane() {
       const convRes = await fetch('/api/conversations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ documentId: upJson.docId }),
+        body: JSON.stringify({ documentId: upJson.docId, origin: 'chat' }),
       });
       const convJson = await convRes.json();
       if (!convRes.ok) throw new Error(convJson?.error || 'Failed to create conversation');
@@ -146,7 +181,7 @@ export default function ChatPane() {
       const greetRes = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ conversationId: convJson.id, documentId: upJson.docId, greet: true }),
+        body: JSON.stringify({ conversationId: convJson.id, documentId: upJson.docId, greet: true, language }),
       });
       const greetJson = await greetRes.json();
       if (greetRes.ok) setMessages((prev) => [...prev, { role: 'assistant', content: greetJson.answer }]);
@@ -207,7 +242,7 @@ export default function ChatPane() {
     if (!user) return;
     setConversationsLoading(true);
     const token = await user.getIdToken();
-    const res = await fetch('/api/conversations', {
+    const res = await fetch('/api/conversations?origin=chat', {
       headers: { Authorization: `Bearer ${token}` },
     });
     const json = await res.json();
@@ -225,7 +260,7 @@ export default function ChatPane() {
     const res = await fetch('/api/conversations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ documentId: selectedDocId }),
+      body: JSON.stringify({ documentId: selectedDocId, origin: 'chat' }),
     });
     const json = await res.json();
     if (!res.ok) {
@@ -240,7 +275,7 @@ export default function ChatPane() {
       const greetRes = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ conversationId: json.id, documentId: selectedDocId, greet: true }),
+        body: JSON.stringify({ conversationId: json.id, documentId: selectedDocId, greet: true, language }),
       });
       const greetJson = await greetRes.json();
       if (greetRes.ok) {
@@ -275,10 +310,11 @@ export default function ChatPane() {
     setQuestion('');
     setMessages((prev) => [...prev, { role: 'user', content: userQuestion }]);
     try {
+      const msgLang = detectLanguage(userQuestion);
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ conversationId: activeConv, documentId: selectedDocId, question: userQuestion }),
+        body: JSON.stringify({ conversationId: activeConv, documentId: selectedDocId, question: userQuestion, language: msgLang }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Chat failed');
@@ -350,7 +386,7 @@ export default function ChatPane() {
           )}
           {!messagesLoading && messages.map((m, idx) => (
             <div key={idx} className={`p-3 rounded ${m.role === 'user' ? 'bg-gray-100' : 'bg-green-50'}`}>
-              <div className="text-xs text-gray-500 mb-1">{m.role}</div>
+              <div className="text-xs text-gray-500 mb-1">{m.role === 'user' ? (userProfile?.displayName || user?.email || 'You') : 'Lawlytics AI'}</div>
               <div className="whitespace-pre-wrap">{m.content}</div>
             </div>
           ))}
